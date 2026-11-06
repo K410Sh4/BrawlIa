@@ -15,9 +15,7 @@ class AdaptiveTests(unittest.TestCase):
     def _feed(self, controller, ms, cap_ms, start, end, age=None):
         for i in range(start, end):
             controller.record_capture(cap_ms)
-            controller.record_analysis(
-                ms, ms if age is None else age, now=i * 0.2
-            )
+            controller.record_analysis(ms, ms if age is None else age, now=i * 0.2)
 
     def test_slow_analysis_reduces_rate_and_capture_without_lag_queue(self):
         ctl = AdaptiveFps(adjust_interval_s=0.5)

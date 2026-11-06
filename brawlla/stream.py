@@ -160,9 +160,7 @@ class VisionPipeline:
         self.target_fps = target_fps
         self.analysis_fps = min(analysis_fps, target_fps)
         self.auto_fps = auto_fps
-        self.adaptive = (
-            AdaptiveFps(target_fps, self.analysis_fps) if auto_fps else None
-        )
+        self.adaptive = AdaptiveFps(target_fps, self.analysis_fps) if auto_fps else None
         self.max_width = max_width
         self.stats = PipelineStats()
         self.slot = LatestFrame()

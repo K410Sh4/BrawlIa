@@ -9,7 +9,6 @@ import math
 import threading
 import time
 
-
 RATE_STEPS = (5, 8, 10, 12, 15, 20, 24, 30, 40, 45, 60)
 
 
@@ -130,13 +129,9 @@ class AdaptiveFps:
                     self._good_windows = 0
             else:
                 self._good_windows = 0
-                self.reason = (
-                    "fila_atrasada" if age_congested else "capacidade_estavel"
-                )
+                self.reason = "fila_atrasada" if age_congested else "capacidade_estavel"
 
-            self.analysis_fps = min(
-                self.analysis_fps, self.max_fps, capture_capacity
-            )
+            self.analysis_fps = min(self.analysis_fps, self.max_fps, capture_capacity)
             # Capturar 30/60 FPS e descartar quase todos os quadros é desperdício.
             # Uma margem de ~25% ajuda a sempre usar o quadro mais atual.
             desired_capture = stepped_limit(

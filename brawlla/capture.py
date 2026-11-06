@@ -202,7 +202,6 @@ class WindowCapture:
         self._mss.close()
 
 
-
 class AutoWindowCapture:
     """Escolhe a melhor janela visível automaticamente, no thread de captura.
 

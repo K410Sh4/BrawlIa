@@ -118,7 +118,9 @@ class Brawlla(tk.Tk):
             font=("Segoe UI", 11),
         ).pack(fill="x", pady=(5, 0))
 
-        action = tk.Frame(self, bg=PANEL, highlightbackground=BORDER, highlightthickness=1)
+        action = tk.Frame(
+            self, bg=PANEL, highlightbackground=BORDER, highlightthickness=1
+        )
         action.pack(fill="x", padx=27, pady=(0, 12))
         self.start_btn = tk.Button(
             action,
@@ -326,9 +328,7 @@ class Brawlla(tk.Tk):
                 self._stop()
             flags = stats.get("quality", {}).get("flags", [])
             if flags:
-                self.detail.set(
-                    "Atenção à visibilidade: " + ", ".join(flags)
-                )
+                self.detail.set("Atenção à visibilidade: " + ", ".join(flags))
         if self._closing and self.session.state == "idle":
             self.destroy()
             return
