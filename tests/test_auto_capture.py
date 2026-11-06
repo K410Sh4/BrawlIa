@@ -7,6 +7,8 @@ import numpy as np
 
 from brawlla.capture import AutoWindowCapture, GameWindow
 from brawlla.config import SessionOptions
+from brawlla.vision import _terrain
+from brawlla.objects import ObjectClassifier
 
 
 class SourceTests(unittest.TestCase):
@@ -33,6 +35,22 @@ class SourceTests(unittest.TestCase):
             source_cls.assert_called_once_with(42)
             auto.close()
             source.close.assert_called_once()
+
+    def test_terrain_contours_match_legacy_regions(self):
+        import cv2
+
+        hsv = np.zeros((360, 640, 3), dtype=np.uint8)
+        cv2.rectangle(hsv, (100, 100), (180, 180), (96, 245, 155), -1)
+        _, previous = _terrain(hsv, "bush")
+        contours, updated = _terrain(hsv, "bush", include_contours=True)
+        self.assertEqual(previous, updated)
+        self.assertEqual(len(contours), len(updated))
+
+    def test_object_template_cache_reuses_same_resizes(self):
+        detector = ObjectClassifier()
+        first = detector._scaled_templates(1280)
+        self.assertIs(first, detector._scaled_templates(1280))
+        self.assertEqual(len(first), 5)
 
     def test_session_auto_fps_validation(self):
         self.assertTrue(SessionOptions(auto_fps=True).auto_fps)

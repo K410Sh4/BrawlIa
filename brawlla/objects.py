@@ -5,6 +5,8 @@ Não é um classificador treinado. Evidência insuficiente = indefinido.
 
 from __future__ import annotations
 from pathlib import Path
+from functools import lru_cache
+
 import cv2
 import numpy as np
 from .config import VisionConfig
@@ -19,6 +21,19 @@ class ObjectClassifier:
         if example is None:
             raise RuntimeError("Exemplo de caixa ausente")
         self.box = example
+
+    @lru_cache(maxsize=16)
+    def _scaled_templates(self, frame_width):
+        """Evita cinco redimensionamentos por candidato a cada quadro."""
+        templates = []
+        for s in (0.60, 0.72, 0.84, 0.96, 1.10):
+            factor = s * (frame_width / self.config.reference_width)
+            sw = max(8, round(self.box.shape[1] * factor))
+            sh = max(8, round(self.box.shape[0] * factor))
+            templates.append(
+                (sw, sh, cv2.resize(self.box, (sw, sh), interpolation=cv2.INTER_AREA))
+            )
+        return templates
 
     def classify(self, frame: np.ndarray, health_bar: dict) -> dict:
         h, w = frame.shape[:2]
@@ -37,13 +52,9 @@ class ObjectClassifier:
         gray = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
         # Textura/forma da caixa, com quatro tamanhos para diferentes resoluções.
         max_match = 0.0
-        for s in (0.60, 0.72, 0.84, 0.96, 1.10):
-            factor = s * (w / self.config.reference_width)
-            sw = max(8, round(self.box.shape[1] * factor))
-            sh = max(8, round(self.box.shape[0] * factor))
+        for sw, sh, small in self._scaled_templates(w):
             if sw >= gray.shape[1] or sh >= gray.shape[0]:
                 continue
-            small = cv2.resize(self.box, (sw, sh), interpolation=cv2.INTER_AREA)
             max_match = max(
                 max_match,
                 float(
