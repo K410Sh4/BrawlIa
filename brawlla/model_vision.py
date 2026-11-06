@@ -139,9 +139,7 @@ def decode_yolo(
         confs = scores[np.arange(len(scores)), labels]
         centers = data[:, :2]
         sizes = data[:, 2:4]
-        boxes = np.column_stack(
-            (centers - sizes / 2, centers + sizes / 2)
-        )
+        boxes = np.column_stack((centers - sizes / 2, centers + sizes / 2))
     else:
         if data.shape[1] != 6:
             raise ValueError("XYXY exige [x1,y1,x2,y2,score,classe]")
@@ -170,7 +168,9 @@ def decode_yolo(
     result = []
     for i in selected[:max_detections]:
         class_id = int(labels[i])
-        label = str(classes[class_id]) if class_id < len(classes) else f"class_{class_id}"
+        label = (
+            str(classes[class_id]) if class_id < len(classes) else f"class_{class_id}"
+        )
         result.append(
             {
                 "class_id": class_id,

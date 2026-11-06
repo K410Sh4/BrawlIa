@@ -16,7 +16,9 @@ def run(args):
         data = json.loads(Path(args.classes).read_text(encoding="utf-8"))
         if isinstance(data, dict):
             ids = sorted(int(k) for k in data)
-            classes = tuple(str(data.get(str(k), f"class_{k}")) for k in range(max(ids) + 1))
+            classes = tuple(
+                str(data.get(str(k), f"class_{k}")) for k in range(max(ids) + 1)
+            )
         elif isinstance(data, list):
             classes = tuple(map(str, data))
         else:
@@ -47,7 +49,9 @@ def run(args):
                 count += 1
                 if not schedule.should_infer(index):
                     continue
-                prediction = model.detect(frame, confidence=args.confidence, iou=args.iou)
+                prediction = model.detect(
+                    frame, confidence=args.confidence, iou=args.iou
+                )
                 observed += 1
                 timings.append(prediction["inference_ms"])
                 # Registro separado para cada quadro observado; sem copiar quadros prévios.
@@ -77,7 +81,9 @@ def run(args):
         "accuracy_measured": False,
     }
     summary = Path(args.output).with_suffix(".summary.json")
-    summary.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+    summary.write_text(
+        json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     print(json.dumps(result, indent=2, ensure_ascii=False))
     return result
 
@@ -85,10 +91,14 @@ def run(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("video", type=Path)
-    parser.add_argument("--model", type=Path, required=True, help="Modelo ONNX fornecido por você")
+    parser.add_argument(
+        "--model", type=Path, required=True, help="Modelo ONNX fornecido por você"
+    )
     parser.add_argument("--classes", help="Lista JSON de classes do modelo")
     parser.add_argument("--output", default="modelo_analise.jsonl")
-    parser.add_argument("--provider", choices=["auto", "directml", "cuda", "cpu"], default="auto")
+    parser.add_argument(
+        "--provider", choices=["auto", "directml", "cuda", "cpu"], default="auto"
+    )
     parser.add_argument("--format", choices=["yolov8", "xyxy"], default="yolov8")
     parser.add_argument("--input-size", type=int, default=640)
     parser.add_argument("--every-n", type=int, default=3)

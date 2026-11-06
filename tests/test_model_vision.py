@@ -56,9 +56,7 @@ class ModelVisionTests(unittest.TestCase):
         self.assertEqual({r["label"] for r in result}, {"player", "enemy"})
 
     def test_xyxy_end_to_end_and_letterbox_coordinates(self):
-        data = np.array(
-            [[40, 150, 140, 250, 0.95, 0]], dtype=np.float32
-        )
+        data = np.array([[40, 150, 140, 250, 0.95, 0]], dtype=np.float32)
         result = decode_yolo(
             data,
             (360, 640, 3),
@@ -72,9 +70,7 @@ class ModelVisionTests(unittest.TestCase):
     def test_validation_and_empty_results(self):
         with self.assertRaises(ValueError):
             decode_yolo(np.zeros((4, 4, 4)), (100, 100, 3), 1, (0, 0))
-        self.assertEqual(
-            decode_yolo(np.zeros((20, 5)), (100, 100, 3), 1, (0, 0)), []
-        )
+        self.assertEqual(decode_yolo(np.zeros((20, 5)), (100, 100, 3), 1, (0, 0)), [])
 
 
 if __name__ == "__main__":
