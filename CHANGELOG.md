@@ -1,3 +1,12 @@
+# 0.12.0
+
+- Identidade do jogador agora ancorada por assinatura visual estável do
+  nome acima da barra e evidência de HP atual, em vez de mudanças de HP.
+- Reidentificação conservadora, limitada por tempo, distância e confiança.
+- Quando existem nomes visuais ambíguos no mesmo quadro, o rastreador
+  não atribui o mesmo ID a múltiplos objetos.
+- Diagnóstico e testes regressivos; ainda sem OCR para nomes literais.
+
 # 0.11.0
 
 - Novo fallback de nome do jogador em vegetação por verde luminoso, com

@@ -15,7 +15,7 @@ from .diagnostics import target_status
 
 LIMITATIONS = [
     "Classificação heurística por exemplos visuais; não mede acurácia.",
-    "IDs usam posição na tela; a evidência auxiliar de movimento relativo estima a câmera por fluxo óptico e pode ser incerta.",
+    "IDs usam geometria e, quando disponível, assinatura visual do nome verde do jogador; isso não é OCR nem identidade pessoal confirmada.",
     "Confiança é indicador interno; candidatos não são identidades confirmadas.",
     "Detecção de telas depende de fonte, idioma e escala.",
     "Durante tolerância de HUD, o combate é marcado como incerto; não há extrapolação de observações.",

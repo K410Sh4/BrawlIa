@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 import cv2
 import numpy as np
 from .config import VisionConfig
@@ -41,6 +43,7 @@ class PlayerLocator:
         self.missed = 0
         self.reference_width = None
         self.reference_name = None
+        self.name_visual_key = None
         self.velocity = np.zeros(2)
         self.last_global_at = None
         self.diagnostics = {}
@@ -243,6 +246,16 @@ class PlayerLocator:
             if self.reference_name is None:
                 self.reference_name = signature
                 self.reference_width = result["name_region"][2]
+                normalized = np.packbits((signature >= 0.45).astype(np.uint8))
+                digest = hashlib.blake2s(
+                    normalized.tobytes(), digest_size=10
+                ).hexdigest()
+                self.name_visual_key = "visual:" + digest
+            # A chave é uma assinatura visual persistente da faixa do nome,
+            # NÃO a transcrição OCR do texto. A barra é observada neste quadro.
+            result["name_identity_key"] = self.name_visual_key
+            result["name_identity_source"] = "visual_template"
+            result["name_text"] = None
             result["confidence"] = round(
                 min(
                     0.95,

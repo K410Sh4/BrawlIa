@@ -6,7 +6,7 @@ import math
 import warnings
 from pathlib import Path
 
-VERSION = "0.11.0"
+VERSION = "0.12.0"
 VERSION_SHORT = VERSION
 SCHEMA_VERSION = 2
 FPS_CHOICES = (5, 10, 15, 30, 60)
@@ -54,6 +54,9 @@ class StateConfig:
 @dataclass(frozen=True)
 class TrackingConfig:
     max_absence_s: float = 0.8
+    name_reid_max_age_s: float = 6.0
+    name_reid_min_similarity: float = 0.55
+    name_reid_max_distance_px: float = 480.0
     base_distance_px: float = 35
     motion_budget_px_s: float = 600
     max_gate_px: float = 220
@@ -66,6 +69,10 @@ class TrackingConfig:
             positive(getattr(self, f.name), f.name)
         if self.max_gate_px < self.base_distance_px:
             raise ValueError("max_gate_px deve ser >= base_distance_px")
+        if self.name_reid_max_age_s < self.max_absence_s:
+            raise ValueError("name_reid_max_age_s deve ser >= max_absence_s")
+        if self.name_reid_min_similarity > 1:
+            raise ValueError("name_reid_min_similarity deve ser <= 1")
 
 
 @dataclass(frozen=True)
