@@ -1,4 +1,4 @@
-# BrawlIA V1.0 — Captura automática
+# BrawlIA V1.1 — Captura automática
 
 Ferramenta local de **observação e análise visual**, sem comandos no jogo.
 
@@ -14,6 +14,8 @@ além de adaptar FPS de captura e análise à capacidade observada.
 3. Execute `iniciar_windows.bat`.
 4. Clique em **Iniciar captura automática**. O mesmo botão encerra a sessão,
    finaliza os arquivos e libera outra captura.
+5. Clique em **Abrir gravação** para abrir no Explorador a pasta da sessão
+   atual ou da última sessão salva, inclusive após reiniciar o programa.
 
 O programa não acessa janelas ocultas ou minimizadas. MSS captura os
 pixels visíveis do desktop, portanto evite janelas sobre o emulador.
