@@ -175,7 +175,7 @@ class SavingTests(unittest.TestCase):
                 c.start(Source, SessionOptions(record_video=False))
                 c.stop()
                 self.assertTrue(c.join(3))
-                self.assertTrue(c.folder.is_relative_to(root))
+                self.assertTrue(c.folder.is_relative_to(root.resolve()))
                 self.assertTrue((c.folder / "sessao.json").exists())
                 self.assertFalse((other / "gravacoes").exists())
             finally:
