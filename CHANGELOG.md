@@ -1,3 +1,11 @@
+# 1.0.0
+
+- Nova interface de captura de um botão; seleção automática da janela do jogo.
+- FPS adaptativos de 5–60 com base no custo real da análise e captura.
+- Registro de diagnóstico adaptativo por sessão, vídeo e PNGs por padrão.
+- Núcleo de percepção heurística preservado até comparação com modelo treinado.
+- Modo somente leitura, sem automação de partidas.
+
 # 0.12.0
 
 - Identidade do jogador agora ancorada por assinatura visual estável do

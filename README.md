@@ -1,140 +1,65 @@
-# BrawlIA / Brawlla 0.12.0
+# BrawlIA V1.0 — Captura automática
 
-[![Tests](https://github.com/K410Sh4/BrawlIa/actions/workflows/ci.yml/badge.svg)](https://github.com/K410Sh4/BrawlIa/actions/workflows/ci.yml)
+Ferramenta local de **observação e análise visual**, sem comandos no jogo.
 
-Observador local de Brawl Stars no BlueStacks. Captura imagens, propõe barras/jogador/caixas, acompanha IDs e produz evidências para revisão. **Somente leitura: não envia comandos de jogo.** A detecção atual é heurística, sem modelo treinado ou OCR numérico de HP.
+A nova interface do BrawlIA é um painel de captura com **um único botão**:
+o usuário abre o BlueStacks, clica em "Iniciar captura automática" e
+o sistema localiza a janela visível, grava vídeo + histórico + amostras PNG,
+além de adaptar FPS de captura e análise à capacidade observada.
 
-## Executar no Windows
+## Iniciar no Windows
 
-1. Instale Python 3.11 ou 3.12 e extraia [o código](https://github.com/K410Sh4/BrawlIa/archive/refs/heads/main.zip) em uma pasta.
-2. Execute `iniciar_windows.bat`. O inicializador cria `.venv` e instala as versões de `requirements.txt`.
-3. Selecione a janela do BlueStacks ou ADB; mantenha a janela descoberta no modo MSS.
-4. Confira captura 30 FPS, análise 15 FPS e largura 1280. Vídeo 15 FPS evita repetir trabalho de codificação; preferências anteriores são respeitadas.
-5. Para coletar dados, marque **Coletar frames brutos → 2 FPS**. Rajadas selecionam até 10 FPS, limitadas pelo FPS real de análise.
-6. Opcionalmente calibre o recorte, preservando o HUD. Pare e inicie outra sessão para cada partida. Espere a finalização antes de fechar.
+1. Python 3.11 ou 3.12 recomendado.
+2. Extraia o ZIP e abra o BlueStacks numa janela visível.
+3. Execute \`iniciar_windows.bat\`.
+4. Clique em **Iniciar captura automática**. O mesmo botão encerra a sessão,
+   finaliza os arquivos e libera outra captura.
 
-No Linux: `python -m venv .venv`, ative o ambiente, instale `requirements.txt` e execute `python app.py`. A fonte Janela/Win32 é específica do Windows. ADB precisa estar disponível/configurado; não é necessário para os testes artificiais.
+O programa não acessa janelas ocultas ou minimizadas. MSS captura os
+pixels visíveis do desktop, portanto evite janelas sobre o emulador.
 
-`gerar_exe_windows.bat` compila um EXE no seu Windows com PyInstaller. O repositório contém código e inicializadores; não há EXE compilado nesta publicação.
+A pasta de destino aparece na interface. Arquivos de sessão ficam em:
+\`%LOCALAPPDATA%\\Brawlla\\gravacoes\\<sessao>\`.
 
-## Mudanças da 0.12.0
+## FPS dinâmicos
 
-- O jogador ganha uma chave de identidade baseada na **assinatura visual do
-  nome observado**, nunca na largura, porcentagem ou cor de HP.
-- Associação por nome visual tem prioridade sobre saltos de posição quando
-  a evidência do nome é suficientemente semelhante; nomes ausentes não geram
-  observações artificiais. O rastreador pode recuperar o ID após perda breve,
-  respeitando distância, validade do combate e tempo máximo configuráveis.
-- Impede reuso do mesmo ID para dois candidatos simultâneos com a mesma
-  assinatura; a decisão volta à geometria em caso de ambiguidade.
-- Sem OCR de texto: não lê literalmente o nome do jogador nem identifica
-  automaticamente os nomes de inimigos/caixas.
-- Novas métricas `identity_association`, `track_name_identity_key` e
-  evento `reidentified` no histórico para auditorias futuras.
+Taxas de 5 até 60 FPS, limitadas por latência p90 de captura e análise,
+com margem de segurança. Ajustes gradativos a cada janela de amostras de
+2 segundos. **Isso mede a capacidade efetiva da máquina, não a ocupação
+direta da GPU.** Na V1.0, a visão heurística ainda é executada em CPU/OpenCV.
+Suporte de GPU via ONNX/DirectML permanece experimental e somente offline.
 
-## Mudanças da 0.11.0
+O vídeo mantém FPS nominal fixo de 15 para preservar o formato MP4; o
+ritmo de captura/análise é adaptativo e consta em \`sessao.json\`.
 
-- Recuperação de nome verde por tonalidade/brilho, ativada só quando a
-  detecção normal falha, sempre exigindo a barra/números da imagem atual.
-- Faixas e opção de fallback configuráveis; diagnóstico explícito de
-  ativação da recuperação; nenhum personagem é inventado entre quadros.
-- Reutilização de máscara verde em vez de calcular o mesmo limiar duas
-  vezes em cada análise.
-- Avaliador ONNX offline com tempo de pré-processamento, execução do
-  modelo e pós-processamento separados.
-- Sem pesos de terceiros, sem transferência de modelos fechados e sem
-  automação de comandos do jogo. Validar com PNGs rotulados antes de
-  declarar melhoria de acurácia.
+## Verificação
 
-## Mudanças da 0.10.0
-
-- Faixas de verde, amarelo, vermelho nas duas pontas do HSV, branco, outras cores e recipiente azul/escuro vêm da configuração efetiva.
-- Máscaras compartilhadas por quadro e cache das consultas de glifos. A leitura do jogador usa região local entre buscas completas, com busca completa imediata quando falha; não extrapola observações ausentes.
-- Compensação de câmera antes da associação principal de IDs; a evidência de corpo/barra usa esses mesmos IDs.
-- Tempos separados de câmera, busca visual, classificação, associação, movimento do corpo, desenho e pipeline.
-- Histórico completo em fila própria. O vídeo continua podendo substituir quadros pendentes, sem substituir registros aceitos do histórico.
-- Cada sessão guarda configuração efetiva, hash, versão do Python e bibliotecas.
-- Revisão permite vincular barras aos seus donos. Exportação COCO preserva relações em arquivo separado.
-- Avaliação de localização de barras em PNGs humanos revisados, com TP/FP/FN, precisão/recall e comparação de configurações.
-- Testes automáticos em Windows/Linux e Python 3.11/3.12; dependências de execução fixadas.
-
-## Arquivos e histórico
-
-No Windows, a raiz padrão é `%LOCALAPPDATA%\Brawlla`; no Linux, `$XDG_DATA_HOME/Brawlla` ou `~/.local/share/Brawlla`. Os dados locais não são enviados ao GitHub.
-
-```text
-Brawlla/
-  preferencias.json
-  gravacoes/<session_id>/
-    sessao.json          # configuração efetiva, ambiente, contagens, erros
-    analise.jsonl        # todas as análises aceitas, inclusive com vídeo desligado
-    analise.mp4          # ou AVI; somente quando vídeo está ativado
-    video_frames.jsonl   # mapeamento dos eventos que chegaram ao vídeo
-    resumo.json
-    relatorio.json
-    relatorio.html
-  capturas/<session_id>/
-    dataset_session.json
-    manifest.jsonl
-    frame_000000001.png
-    frame_000000001.prediction.json
-    labels/frame_000000001.json
-```
-
-O esquema acima descreve arquivos, não uma sequência de processamento. `session_id`, `frame_id` e timestamp monotônico associam imagem/análise/vídeo. PNG é o recorte nativo antes das marcações. Predições são separadas dos rótulos humanos.
-
-Na 0.10, `analise.jsonl` não depende da fila do vídeo. Seus campos legados `video_frame`/`video_repeats` ficam nulos; para a correspondência exata, associe `frame_id` com `video_frames.jsonl`. Esse segundo arquivo contém índices, repetições, resoluções e encaixe no vídeo. Eventos que não chegaram ao vídeo continuam no histórico.
-
-Histórico: fila de 256 eventos sem imagens, limite de 256 MiB e reserva de 512 MiB livres. Se faltar capacidade/espaço, a falha é explícita; o pipeline interrompe na tentativa de envio seguinte e a auditoria registra o histórico incompleto. Nenhum registro aceito é substituído silenciosamente. O vídeo tem limites próprios (30 min / 2 GiB aproximados); amostras têm 1500 imagens / 1 GiB aproximado, além da reserva de espaço. Ao atingir limites de vídeo/amostras, o histórico pode continuar dentro da sua cota.
-
-## Configurar e reproduzir
-
-Edite `configuracoes.json` antes de iniciar uma nova leitura. Os valores padrão vêm de `brawlla/config.py`; um teste mantém o JSON sincronizado com eles. `motion_enabled=false` desliga fluxo óptico sem desligar a detecção visual de barras. Limiares são heurísticos, não probabilidades calibradas.
-
-As antigas opções `container_dark_fraction` e `container_dark_support_min` já não tinham efeito na 0.9. Ao carregar arquivos antigos, são removidas com aviso: use `min_container_fraction`, `min_short_fill_fraction` e `single_glyph_container_fraction`. As faixas de cor do JSON agora têm efeito real; perfis antigos que as alteraram devem ser reavaliados.
-
-`sessao.json.analyzer_config` contém os valores usados e `provenance.config_sha256` identifica o perfil. A configuração da interface fica em `options`; versões do ambiente ficam em `provenance`.
-
-## Revisar dados e ligar uma barra ao dono
-
-- Abra **Revisar amostras** e selecione uma pasta com `manifest.jsonl`.
-- Desenhe corpos/caixas com as categorias `jogador`, `outro_personagem`, `caixa`; recebem `entity_id` local à imagem.
-- Selecione o corpo em **Dono da próxima barra**, escolha `barra_vida` e desenhe a barra. O rótulo recebe `owner_id`.
-- Complete todas as categorias presentes antes de marcar Aprovada/Corrigida. Descarte ou marque Incerta quando necessário. Um negativo exige nenhuma caixa e a opção Negativo explícita.
-- Salve a revisão. Predições nunca são promovidas a verdade automaticamente.
-
-**Exportar dataset** gera COCO `train.json`, `val.json`, `test.json`, `relationships.json` e `dataset.json`. As imagens não são duplicadas: usar a raiz `image_root` do resumo. `relationships.json` liga IDs de anotações de barra/dono e indica o conjunto. Barras antigas sem vínculo são permitidas para detecção, mas contadas como `unlinked_bars`.
-
-A divisão é estável por sessão (hash, proporções esperadas 80/10/10 em muitos grupos), sem misturar frames da mesma sessão. Poucas partidas podem deixar conjuntos vazios; isso é indicado por `empty_splits`. Uma mesma partida não deve ser repartida entre sessões de conjuntos diferentes. JPEGs antigos são preservados e ignorados na exportação nova.
-
-## Avaliar antes de treinar
-
-```bash
-python evaluate_dataset.py CAMINHO_DAS_CAPTURAS --config configuracoes.json --output evaluation.json
-python evaluate_dataset.py CAMINHO_DAS_CAPTURAS --config candidato.json --compare-config baseline.json --output evaluation.json
-```
-
-Somente PNGs aprovados/corrigidos por humano entram. O avaliador mede localização de barras em imagens independentes; não mede dono, pontos de vida exatos, estado da partida ou rastreamento temporal. Os rótulos precisam estar completos. Nenhuma rede é treinada automaticamente, nem há pesos de modelo incluídos. Consulte [o plano de dados](docs/DATASET.md).
-
-## Avaliação opcional com ONNX (experimental)
-
-A leitura ao vivo permanece heurística e não foi substituída. Há agora um
-adaptador **somente offline** para avaliar modelos ONNX externos em vídeos,
-com escalonamento de inferência, comparação de latência e seleção de
-CUDA/DirectML (AMD/Intel no Windows) com fallback para CPU. Nenhum modelo
-ou peso é incluído, e não há controle de jogo.
-
-Instruções: [ONNX OFFLINE](docs/ONNX_OFFLINE.md). A precisão somente poderá
-ser comparada com quadros revisados por pessoas.
-
-## Desenvolvimento e testes
-
-```bash
+\`\`\`powershell
 python -m pip install -r requirements.txt -r requirements-dev.txt
-python -m pip check
 python -m unittest discover -s tests -v
-python -m ruff check .
-python -m black --check .
-```
+\`\`\`
 
-Os testes usam dados artificiais e diretórios temporários. Passar nos testes não mede precisão no jogo. [Arquitetura e contratos](docs/ARCHITECTURE.md); [limitações e validação](docs/VALIDATION.md).
+Arquivos para auditar: \`analise.jsonl\`, \`video_frames.jsonl\`,
+\`analise.mp4\`, \`resumo.json\`, \`sessao.json\` e, quando elegíveis,
+amostras PNG com metadados na pasta \`capturas\`.
+
+**Guia detalhado:** [captura automática e desempenho](docs/AUTO_CAPTURE_V1.md).
+
+## Segurança e limites
+
+- Não controla teclado, mouse, joystick, partidas ou contas.
+- Sem OCR de nomes literais; o tracker usa assinaturas visuais do nome.
+- Heurísticas HSV atuais não são equivalentes a um modelo treinado.
+- Cobertura de candidatos não é precisão. Requer dataset anotado para
+  comparar acertos e falsos positivos.
+- O desempenho real deve ser medido no seu PC, com gravação ativada.
+
+## Recursos de pesquisa e avaliação
+
+- [Visão ONNX offline](docs/ONNX_OFFLINE.md)
+- [Identidade por nome visual](docs/NAME_IDENTITY.md)
+- [Dataset e anotações](docs/DATASET.md)
+- [Arquitetura e métricas anteriores](docs/ARCHITECTURE.md)
+
+Ferramentas de avaliação e relatórios continuam disponíveis no repositório,
+mas os controles antigos não fazem parte do painel principal.
