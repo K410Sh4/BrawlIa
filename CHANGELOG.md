@@ -1,3 +1,12 @@
+# 1.1.0
+
+- Novo botão "Abrir gravação" no painel, apontando para a sessão ativa,
+  a última sessão local após reiniciar, ou o diretório geral vazio.
+- Abertura direta da pasta com Explorer (Windows) ou gerenciador do sistema,
+  sem executar shell e sem carregar caminhos externos ao BrawlIA.
+- Melhorias no pipeline de captura e instrumentação de latência; novos testes
+  de regressão e manutenção do modo exclusivamente observador.
+
 # 1.0.0
 
 - Nova interface de captura de um botão; seleção automática da janela do jogo.

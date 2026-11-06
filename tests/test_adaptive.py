@@ -40,9 +40,19 @@ class AdaptiveTests(unittest.TestCase):
         self.assertEqual(ctl.rates()[1], 15)
         self.assertEqual(ctl.snapshot()["reason"], "fila_atrasada")
 
+    def test_recent_window_recovers_after_old_costly_frames(self):
+        ctl = AdaptiveFps(adjust_interval_s=0.5, sample_window=16)
+        self._feed(ctl, 130, 18, 0, 35)
+        slow_rate = ctl.rates()[1]
+        self._feed(ctl, 6, 3, 35, 105)
+        self.assertGreater(ctl.rates()[1], slow_rate)
+        self.assertEqual(ctl.snapshot()["sample_window"], 16)
+
     def test_reject_invalid_data_and_parameters(self):
         with self.assertRaises(ValueError):
             AdaptiveFps(capture_fps=11)
+        with self.assertRaises(ValueError):
+            AdaptiveFps(sample_window=7)
         ctl = AdaptiveFps()
         ctl.record_capture(float("nan"))
         ctl.record_analysis(float("nan"), 0, now=0)

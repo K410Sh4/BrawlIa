@@ -6,7 +6,7 @@ import math
 import warnings
 from pathlib import Path
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 VERSION_SHORT = VERSION
 SCHEMA_VERSION = 2
 FPS_CHOICES = (5, 10, 15, 30, 60)

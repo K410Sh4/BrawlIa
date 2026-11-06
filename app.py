@@ -16,6 +16,7 @@ from PIL import Image, ImageTk
 from brawlla.capture import AutoWindowCapture, enable_dpi_awareness
 from brawlla.config import SessionOptions, VERSION_SHORT, load_config
 from brawlla.session import SessionController
+from brawlla.recordings import open_recording_folder, recording_folder
 from brawlla.storage import application_directory
 from brawlla.ui_mailbox import UiMailbox
 
@@ -136,14 +137,29 @@ class Brawlla(tk.Tk):
             padx=22,
             pady=15,
         )
-        self.start_btn.pack(side="left", padx=18, pady=16)
+        self.start_btn.pack(side="left", padx=(18, 8), pady=16)
+        self.folder_btn = tk.Button(
+            action,
+            text="ABRIR GRAVAÇÃO",
+            command=self._open_recording,
+            bg="#283848",
+            fg=TEXT,
+            activebackground="#394f61",
+            activeforeground=TEXT,
+            relief="flat",
+            cursor="hand2",
+            font=("Segoe UI Semibold", 10),
+            padx=13,
+            pady=16,
+        )
+        self.folder_btn.pack(side="left", padx=(0, 12), pady=16)
         tk.Label(
             action,
             textvariable=self.status,
             bg=PANEL,
             fg=TEXT,
             font=("Segoe UI", 10),
-            wraplength=540,
+            wraplength=390,
             justify="left",
             anchor="w",
         ).pack(side="left", fill="both", expand=True, padx=(6, 16))
@@ -198,6 +214,19 @@ class Brawlla(tk.Tk):
                 anchor="w",
                 font=("Segoe UI", 9),
             ).pack(fill="x", pady=1)
+
+    def _open_recording(self):
+        """Abre a sessão atual; após reiniciar, encontra a última gravação."""
+        try:
+            folder = recording_folder(self.session.root, self.session.folder)
+            if not folder.exists():
+                folder.mkdir(parents=True, exist_ok=True)
+            open_recording_folder(folder)
+            self.destination.set(f"Pasta de gravação: {folder}")
+        except (OSError, ValueError) as exc:
+            self.status.set(f"Não foi possível abrir a gravação: {exc}")
+            if not self._closing:
+                messagebox.showerror("Pasta de gravação", str(exc))
 
     def _toggle(self):
         if self.session.finalizing or self._closing:
@@ -287,6 +316,8 @@ class Brawlla(tk.Tk):
                     state="normal",
                     bg=ACCENT,
                 )
+                if self.session.folder:
+                    self.destination.set(f"Última gravação: {self.session.folder}")
                 if result and result.get("error"):
                     self.status.set("Falha: " + result["error"])
                 elif result and result.get("verified"):

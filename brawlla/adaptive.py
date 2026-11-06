@@ -46,6 +46,7 @@ class AdaptiveFps:
         max_fps=60,
         adjust_interval_s=2.0,
         min_samples=8,
+        sample_window=48,
     ):
         if (
             capture_fps not in RATE_STEPS
@@ -54,6 +55,8 @@ class AdaptiveFps:
             or max_fps not in RATE_STEPS
             or adjust_interval_s <= 0
             or min_samples < 1
+            or type(sample_window) is not int
+            or sample_window < min_samples
         ):
             raise ValueError("Parâmetros de controle adaptativo inválidos")
         self._lock = threading.Lock()
@@ -62,9 +65,11 @@ class AdaptiveFps:
         self.max_fps = max_fps
         self.interval = adjust_interval_s
         self.min_samples = min_samples
-        self.capture_cost_ms = deque(maxlen=120)
-        self.analysis_cost_ms = deque(maxlen=120)
-        self.frame_age_ms = deque(maxlen=120)
+        # Uma janela curta impede que picos de outra cena afetem por muito
+        # tempo o ajuste de FPS no combate.
+        self.capture_cost_ms = deque(maxlen=sample_window)
+        self.analysis_cost_ms = deque(maxlen=sample_window)
+        self.frame_age_ms = deque(maxlen=sample_window)
         self._last_adjust = None
         self._good_windows = 0
         self.adjustments = 0
@@ -164,5 +169,6 @@ class AdaptiveFps:
                 "capture_p90_ms": round(percentile(self.capture_cost_ms, 0.90), 2),
                 "age_p90_ms": round(percentile(self.frame_age_ms, 0.90), 2),
                 "adjustments": self.adjustments,
+                "sample_window": self.analysis_cost_ms.maxlen,
                 "reason": self.reason,
             }

@@ -15,7 +15,7 @@ CATEGORIES = ("jogador", "outro_personagem", "caixa", "barra_vida")
 STATUSES = ("unreviewed", "accepted", "corrected", "rejected", "uncertain")
 
 
-def crop_frame(frame, roi=None, source_aspect=0):
+def crop_frame(frame, roi=None, source_aspect=0, *, copy_full_frame=True):
     h, w = frame.shape[:2]
     if source_aspect and abs(w / h / source_aspect - 1) > 0.02:
         raise ValueError("Proporção da fonte mudou; calibre novamente o recorte.")
@@ -32,7 +32,14 @@ def crop_frame(frame, roi=None, source_aspect=0):
     right, bottom = min(w, round((x + rw) * w)), min(h, round((y + rh) * h))
     if right - left < 320 or bottom - top < 200:
         raise ValueError("Recorte deve conter pelo menos 320 × 200 pixels.")
-    return frame[top:bottom, left:right].copy(), {
+    # Reutilizar a imagem apenas quando a fonte fornece buffer novo por quadro.
+    full_frame = left == 0 and top == 0 and right == w and bottom == h
+    image = (
+        frame
+        if full_frame and not copy_full_frame
+        else frame[top:bottom, left:right].copy()
+    )
+    return image, {
         "source_resolution": [w, h],
         "roi_xywh": [left, top, right - left, bottom - top],
         "roi_normalized": list(roi or (0, 0, 1, 1)),

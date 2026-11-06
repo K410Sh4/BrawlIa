@@ -164,6 +164,8 @@ class WindowCapture:
                 "Biblioteca mss ausente. Instale as dependências."
             ) from exc
         self.handle = int(handle)
+        # cvtColor cria um ndarray independente em cada grab().
+        self.fresh_frames = True
         self._mss = mss.mss()  # Criar e consumir no MESMO thread (recursos GDI).
         self._last_rect = None
         self.quality_flags = []
@@ -218,6 +220,7 @@ class AutoWindowCapture:
         chosen = windows[0]
         self.source_label = chosen.title
         self._source = WindowCapture(chosen.handle)
+        self.fresh_frames = True
         self.handle = chosen.handle
         self._last_rect = None
         self.quality_flags = []

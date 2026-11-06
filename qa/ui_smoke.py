@@ -61,12 +61,18 @@ with tempfile.TemporaryDirectory() as tmp:
             advance(app, 1.6)
             assert app.active
             assert app.session.pipeline.adaptive is not None
+            with patch("app.open_recording_folder") as opener:
+                app._open_recording()
+                opener.assert_called_once_with(app.session.folder)
             assert app.last_data is not None
             app._toggle()
             until = time.monotonic() + 15
             while app.session.state != "idle" and time.monotonic() < until:
                 advance(app, 0.1)
             assert app.session.state == "idle"
+            with patch("app.open_recording_folder") as opener:
+                app._open_recording()
+                opener.assert_called_once_with(app.session.folder)
             assert app.session.last_summary["history"]["complete"]
             assert app.session.last_summary["pipeline"]["adaptive_fps"]["enabled"]
             print("V1 smoke: captura, FPS adaptativo e finalização aprovados")
