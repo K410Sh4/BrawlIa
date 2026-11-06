@@ -75,7 +75,9 @@ class HighlightNameTests(TestCase):
 
     def test_fallback_can_be_disabled_for_ab_comparison(self):
         hsv = vegetation_frame()
-        locator = PlayerLocator(replace(VisionConfig(), player_highlight_fallback=False))
+        locator = PlayerLocator(
+            replace(VisionConfig(), player_highlight_fallback=False)
+        )
         with patch("brawlla.player.bar_observations", side_effect=synthetic_bar):
             candidate = locator.locate(hsv, timestamp_s=1)
         self.assertIsNone(candidate)

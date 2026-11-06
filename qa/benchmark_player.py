@@ -55,9 +55,7 @@ def benchmark(video, every_n=10, limit=150):
             for name, locator in locators.items():
                 start = time.perf_counter()
                 candidate = locator.locate(hsv, timestamp, evidence=evidence)
-                metrics[name]["times_ms"].append(
-                    (time.perf_counter() - start) * 1000
-                )
+                metrics[name]["times_ms"].append((time.perf_counter() - start) * 1000)
                 metrics[name]["candidate_count"] += candidate is not None
                 metrics[name]["highlight_used"] += bool(
                     locator.diagnostics.get("highlight_fallback_used")

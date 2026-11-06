@@ -27,6 +27,6 @@ jobs:
       - name: Lint
         run: python -m ruff check .
       - name: Formatting
-        run: python -m black --check --diff .
+        run: python -m black --check .
       - name: Unit and integration tests
         run: python -m unittest discover -s tests -v

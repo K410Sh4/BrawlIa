@@ -156,9 +156,7 @@ def detect(
     config = config or VisionConfig()
     hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
     evidence = FrameEvidence(hsv, config)
-    greens = _bars(
-        hsv, "green", config=config, color_mask=evidence.color_masks[0][0]
-    )
+    greens = _bars(hsv, "green", config=config, color_mask=evidence.color_masks[0][0])
     bar_filter = {}
     others = other_bar_observations(hsv, config, bar_filter, evidence=evidence)
     # Terreno em no máximo 640 px: contornos são reconvertidos às coordenadas originais.
