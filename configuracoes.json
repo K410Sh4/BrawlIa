@@ -1,0 +1,134 @@
+{
+  "state": {
+    "check_interval_s": 0.18,
+    "enter_combat_s": 0.12,
+    "confirm_menu_s": 0.4,
+    "combat_grace_s": 2.5,
+    "hud_threshold": 0.48,
+    "defeat_threshold": 0.66,
+    "results_threshold": 0.7,
+    "menu_threshold": 0.78,
+    "search_width": 640
+  },
+  "tracking": {
+    "max_absence_s": 0.8,
+    "base_distance_px": 35,
+    "motion_budget_px_s": 600,
+    "max_gate_px": 220,
+    "prediction_horizon_s": 0.25,
+    "velocity_tau_s": 0.12,
+    "reference_width": 1280
+  },
+  "vision": {
+    "reference_width": 1280,
+    "legacy_reference_width": 1605,
+    "terrain_width": 640,
+    "number_support_min": 0.018,
+    "min_container_fraction": 0.45,
+    "min_short_fill_fraction": 0.3,
+    "single_glyph_container_fraction": 0.6,
+    "number_relaxed_support_factor": 0.4,
+    "number_value_min": 180,
+    "number_small_value_min": 165,
+    "number_saturation_max": 85,
+    "container_value_max": 85,
+    "container_neutral_value_max": 140,
+    "container_neutral_saturation_max": 80,
+    "container_blue_lo": [
+      100,
+      0,
+      0
+    ],
+    "container_blue_hi": [
+      150,
+      199,
+      154
+    ],
+    "white_lo": [
+      0,
+      0,
+      190
+    ],
+    "white_hi": [
+      179,
+      80,
+      255
+    ],
+    "other_lo": [
+      82,
+      95,
+      155
+    ],
+    "other_hi": [
+      164,
+      255,
+      255
+    ],
+    "red_low_lo": [
+      0,
+      95,
+      105
+    ],
+    "red_low_hi": [
+      12,
+      255,
+      255
+    ],
+    "motion_enabled": true,
+    "player_name_min_width_px": 64,
+    "player_name_similarity_min": 0.22,
+    "player_jump_base_px": 45,
+    "player_container_width_px": 76,
+    "max_player_absence_s": 0.8,
+    "green_lo": [
+      42,
+      110,
+      120
+    ],
+    "green_hi": [
+      81,
+      255,
+      255
+    ],
+    "yellow_lo": [
+      18,
+      90,
+      110
+    ],
+    "yellow_hi": [
+      42,
+      255,
+      255
+    ],
+    "red_lo": [
+      165,
+      95,
+      105
+    ],
+    "red_hi": [
+      179,
+      255,
+      255
+    ],
+    "bush_lo": [
+      85,
+      195,
+      70
+    ],
+    "bush_hi": [
+      108,
+      255,
+      255
+    ],
+    "wall_lo": [
+      160,
+      55,
+      195
+    ],
+    "wall_hi": [
+      179,
+      150,
+      255
+    ]
+  }
+}

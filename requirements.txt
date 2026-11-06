@@ -1,0 +1,5 @@
+# Runtime versions tested together; Python 3.11/3.12.
+opencv-python==4.14.0.94
+numpy==2.3.5
+Pillow==12.3.0
+mss==10.2.0
