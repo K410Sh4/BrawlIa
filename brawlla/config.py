@@ -6,7 +6,7 @@ import math
 import warnings
 from pathlib import Path
 
-VERSION = "0.12.0"
+VERSION = "1.0.0"
 VERSION_SHORT = VERSION
 SCHEMA_VERSION = 2
 FPS_CHOICES = (5, 10, 15, 30, 60)
@@ -244,6 +244,7 @@ def load_config(path: Path | None = None) -> AnalyzerConfig:
 
 @dataclass(frozen=True)
 class SessionOptions:
+    auto_fps: bool = False
     capture_fps: int = 30
     analysis_fps: int = 15
     max_width: int = 1280
@@ -256,6 +257,8 @@ class SessionOptions:
     burst_fps: int = 10
 
     def __post_init__(self):
+        if type(self.auto_fps) is not bool:
+            raise ValueError("auto_fps deve ser booleano")
         if self.burst_fps not in (5, 10) or type(self.burst_fps) is not int:
             raise ValueError("Rajada deve ser 5 ou 10 FPS")
         if (

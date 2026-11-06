@@ -202,6 +202,37 @@ class WindowCapture:
         self._mss.close()
 
 
+
+class AutoWindowCapture:
+    """Escolhe a melhor janela visível automaticamente, no thread de captura.
+
+    Não troca de janela silenciosamente no meio da sessão.
+    """
+
+    def __init__(self):
+        windows = list_game_windows()
+        if not windows:
+            raise RuntimeError(
+                "Nenhuma janela BlueStacks/Brawl Stars visível. "
+                "Abra o emulador na tela e tente novamente."
+            )
+        chosen = windows[0]
+        self.source_label = chosen.title
+        self._source = WindowCapture(chosen.handle)
+        self.handle = chosen.handle
+        self._last_rect = None
+        self.quality_flags = []
+
+    def grab(self):
+        result = self._source.grab()
+        self._last_rect = self._source._last_rect
+        self.quality_flags = self._source.quality_flags
+        return result
+
+    def close(self):
+        self._source.close()
+
+
 def find_adb() -> str:
     candidates = [
         os.environ.get("BRAWLLA_ADB", ""),
