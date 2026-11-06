@@ -1,12 +1,13 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-if not exist .venv\Scripts\python.exe (
- echo Execute iniciar_windows.bat antes.
+set "VENV=.venv-v1"
+if not exist "%VENV%\Scripts\python.exe" (
+ echo Execute iniciar_windows.bat antes de compilar.
  pause
  exit /b 1
 )
-call .venv\Scripts\activate.bat
+call "%VENV%\Scripts\activate.bat"
 python -m pip install pyinstaller
 if errorlevel 1 (pause & exit /b 1)
 python build_exe.py
