@@ -14,12 +14,12 @@ from brawlla.dataset import crop_frame
 class RecordingFolderTests(unittest.TestCase):
     def test_open_root_before_first_session(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             self.assertEqual(recordings.recording_folder(root), root / "gravacoes")
 
     def test_latest_session_after_relaunch_and_current_priority(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             past = root / "gravacoes" / "20261105_100000_aaaaaa"
             recent = root / "gravacoes" / "20261106_200000_bbbbbb"
             for folder in (past, recent):
@@ -32,7 +32,7 @@ class RecordingFolderTests(unittest.TestCase):
 
     def test_ignores_non_sessions(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             empty = root / "gravacoes" / "20261106_999999_empty"
             valid = root / "gravacoes" / "20261106_100000_valid"
             empty.mkdir(parents=True)
