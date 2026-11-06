@@ -1,4 +1,4 @@
-# BrawlIA / Brawlla 0.10.0
+# BrawlIA / Brawlla 0.11.0
 
 [![Tests](https://github.com/K410Sh4/BrawlIa/actions/workflows/ci.yml/badge.svg)](https://github.com/K410Sh4/BrawlIa/actions/workflows/ci.yml)
 
@@ -16,6 +16,20 @@ Observador local de Brawl Stars no BlueStacks. Captura imagens, propõe barras/j
 No Linux: `python -m venv .venv`, ative o ambiente, instale `requirements.txt` e execute `python app.py`. A fonte Janela/Win32 é específica do Windows. ADB precisa estar disponível/configurado; não é necessário para os testes artificiais.
 
 `gerar_exe_windows.bat` compila um EXE no seu Windows com PyInstaller. O repositório contém código e inicializadores; não há EXE compilado nesta publicação.
+
+## Mudanças da 0.11.0
+
+- Recuperação de nome verde por tonalidade/brilho, ativada só quando a
+  detecção normal falha, sempre exigindo a barra/números da imagem atual.
+- Faixas e opção de fallback configuráveis; diagnóstico explícito de
+  ativação da recuperação; nenhum personagem é inventado entre quadros.
+- Reutilização de máscara verde em vez de calcular o mesmo limiar duas
+  vezes em cada análise.
+- Avaliador ONNX offline com tempo de pré-processamento, execução do
+  modelo e pós-processamento separados.
+- Sem pesos de terceiros, sem transferência de modelos fechados e sem
+  automação de comandos do jogo. Validar com PNGs rotulados antes de
+  declarar melhoria de acurácia.
 
 ## Mudanças da 0.10.0
 

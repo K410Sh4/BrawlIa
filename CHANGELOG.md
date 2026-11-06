@@ -1,3 +1,13 @@
+# 0.11.0
+
+- Novo fallback de nome do jogador em vegetação por verde luminoso, com
+  limiar configurável e validação obrigatória da barra abaixo do nome.
+- Menos trabalho duplicado: reutilização da máscara verde já calculada.
+- Diagnósticos de fallback e tempos separados no avaliador ONNX offline.
+- Experimentos baseados nos vídeos de 06/11/2026; resultados visuais
+  são hipóteses de melhoria, não precisão comprovada.
+- Testes de regressão e isolamento do modo somente leitura.
+
 # 0.10.0
 
 Primeira publicação deste projeto no GitHub, baseada na versão local 0.9.

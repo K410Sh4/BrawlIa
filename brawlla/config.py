@@ -6,7 +6,7 @@ import math
 import warnings
 from pathlib import Path
 
-VERSION = "0.10.0"
+VERSION = "0.11.0"
 VERSION_SHORT = VERSION
 SCHEMA_VERSION = 2
 FPS_CHOICES = (5, 10, 15, 30, 60)
@@ -98,6 +98,9 @@ class VisionConfig:
     player_jump_base_px: float = 45
     player_container_width_px: float = 76
     max_player_absence_s: float = 0.8
+    player_highlight_fallback: bool = True
+    player_highlight_hue_min: int = 64
+    player_highlight_value_min: int = 200
     green_lo: tuple = (42, 110, 120)
     green_hi: tuple = (81, 255, 255)
     yellow_lo: tuple = (18, 90, 110)
@@ -112,6 +115,15 @@ class VisionConfig:
     def __post_init__(self):
         if type(self.motion_enabled) is not bool:
             raise ValueError("motion_enabled deve ser booleano")
+        if type(self.player_highlight_fallback) is not bool:
+            raise ValueError("player_highlight_fallback deve ser booleano")
+        for name, limit in (
+            ("player_highlight_hue_min", 179),
+            ("player_highlight_value_min", 255),
+        ):
+            value = getattr(self, name)
+            if type(value) is not int or not 0 <= value <= limit:
+                raise ValueError(f"{name}: inteiro fora do intervalo HSV")
         for name in ("reference_width", "legacy_reference_width", "terrain_width"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 320:
