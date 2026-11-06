@@ -111,9 +111,7 @@ def _bars(
     return sorted(result, key=lambda p: p.width * p.height, reverse=True)[:20]
 
 
-def _terrain(
-    hsv: np.ndarray, kind: str, config=None, *, include_contours=False
-):
+def _terrain(hsv: np.ndarray, kind: str, config=None, *, include_contours=False):
     config = config or VisionConfig()
     if kind == "bush":
         mask = _range(hsv, config.bush_lo, config.bush_hi)
