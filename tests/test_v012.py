@@ -12,7 +12,6 @@ import cv2
 from brawlla.config import TrackingConfig, VisionConfig
 from brawlla.player import PlayerLocator
 from brawlla.tracking import TargetTracker
-from brawlla.vision import detect
 from test_v09 import sample
 
 
