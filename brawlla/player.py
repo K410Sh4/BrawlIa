@@ -247,7 +247,9 @@ class PlayerLocator:
                 self.reference_name = signature
                 self.reference_width = result["name_region"][2]
                 normalized = np.packbits((signature >= 0.45).astype(np.uint8))
-                digest = hashlib.blake2s(normalized.tobytes(), digest_size=10).hexdigest()
+                digest = hashlib.blake2s(
+                    normalized.tobytes(), digest_size=10
+                ).hexdigest()
                 self.name_visual_key = "visual:" + digest
             # A chave é uma assinatura visual persistente da faixa do nome,
             # NÃO a transcrição OCR do texto. A barra é observada neste quadro.

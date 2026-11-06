@@ -310,9 +310,7 @@ class TargetTracker:
                     "track_hits": track.hits,
                     "track_kind": track.kind,
                     "identity_association": (
-                        "nome_visual"
-                        if index in name_assigned
-                        else "geometria"
+                        "nome_visual" if index in name_assigned else "geometria"
                     ),
                     "track_name_identity_key": track.name_key,
                     "name_is_ocr": False,

@@ -14,7 +14,6 @@ from brawlla.player import PlayerLocator
 from brawlla.tracking import TargetTracker
 from test_v09 import sample
 
-
 KEY = "visual:0123456789abcdef0123"
 
 
@@ -86,7 +85,7 @@ class TrackerNameAnchorTests(unittest.TestCase):
         tid = first[0]["track_id"]
         self.assertEqual(first[0]["identity_association"], "geometria")
         moved = tracker.update(
-            [player(x=592, y=355, score=0.3, hp="low_fill_candidate")],
+            [player(x=600, y=340, score=0.3, hp="low_fill_candidate")],
             timestamp_s=0.08,
         )
         # O outlier ainda pode ser associado pela posição, não pelo nome.
@@ -103,12 +102,7 @@ class TrackerNameAnchorTests(unittest.TestCase):
         tracker = TargetTracker()
         tid = tracker.update([player()], timestamp_s=0)[0]["track_id"]
         self.assertEqual(tracker.update([], timestamp_s=1.1), [])
-        self.assertTrue(
-            any(
-                x["event"] == "lost"
-                for x in tracker.drain_events()
-            )
-        )
+        self.assertTrue(any(x["event"] == "lost" for x in tracker.drain_events()))
         outcome = tracker.update([player(x=660, y=290)], timestamp_s=1.2)
         self.assertEqual(len(outcome), 1)
         self.assertEqual(outcome[0]["track_id"], tid)
@@ -138,9 +132,7 @@ class TrackerNameAnchorTests(unittest.TestCase):
     def test_duplicate_name_keys_same_frame_cannot_share_one_id(self):
         tracker = TargetTracker()
         original = tracker.update([player(x=200)], timestamp_s=0)[0]["track_id"]
-        both = tracker.update(
-            [player(x=202), player(x=900)], timestamp_s=0.1
-        )
+        both = tracker.update([player(x=202), player(x=900)], timestamp_s=0.1)
         self.assertEqual(len(set(o["track_id"] for o in both)), 2)
         self.assertEqual(both[0]["track_id"], original)
         self.assertTrue(all(o["identity_association"] == "geometria" for o in both))
