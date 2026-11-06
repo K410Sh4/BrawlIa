@@ -39,10 +39,20 @@ def _range(
 
 
 def _bars(
-    hsv: np.ndarray, kind: str, diagnostics: dict | None = None, config=None
+    hsv: np.ndarray,
+    kind: str,
+    diagnostics: dict | None = None,
+    config=None,
+    *,
+    color_mask=None,
 ) -> list[Region]:
+    """Reutiliza máscara HSV calculada no quadro quando disponível."""
     config = config or VisionConfig()
-    if kind == "green":
+    if color_mask is not None:
+        if color_mask.shape != hsv.shape[:2] or color_mask.dtype != np.uint8:
+            raise ValueError("Máscara de cor inválida")
+        mask = color_mask
+    elif kind == "green":
         mask = _range(hsv, config.green_lo, config.green_hi)
     else:
         # Na amostra inicial, as barras de HP vermelhas são vermelho-magenta
@@ -146,7 +156,9 @@ def detect(
     config = config or VisionConfig()
     hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
     evidence = FrameEvidence(hsv, config)
-    greens = _bars(hsv, "green", config=config)
+    greens = _bars(
+        hsv, "green", config=config, color_mask=evidence.color_masks[0][0]
+    )
     bar_filter = {}
     others = other_bar_observations(hsv, config, bar_filter, evidence=evidence)
     # Terreno em no máximo 640 px: contornos são reconvertidos às coordenadas originais.

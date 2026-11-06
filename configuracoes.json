@@ -129,6 +129,9 @@
       179,
       150,
       255
-    ]
+    ],
+    "player_highlight_fallback": true,
+    "player_highlight_hue_min": 64,
+    "player_highlight_value_min": 200
   }
 }

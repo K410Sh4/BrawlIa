@@ -237,7 +237,9 @@ class OnnxVision:
     def detect(self, frame_bgr, confidence=0.35, iou=0.5):
         start = time.perf_counter()
         tensor, scale, padding = letterbox(frame_bgr, self.width, self.height)
+        preprocessed = time.perf_counter()
         outputs = self.session.run(None, {self.input_name: tensor})
+        inferred = time.perf_counter()
         boxes = decode_yolo(
             outputs[0],
             frame_bgr.shape,
@@ -248,8 +250,13 @@ class OnnxVision:
             iou=iou,
             export_format=self.export_format,
         )
+        finished = time.perf_counter()
         return {
             "provider": self.provider,
-            "inference_ms": round((time.perf_counter() - start) * 1000, 3),
+            # Campo legado: sempre incluiu pré/pós-processamento.
+            "inference_ms": round((finished - start) * 1000, 3),
+            "preprocess_ms": round((preprocessed - start) * 1000, 3),
+            "model_runtime_ms": round((inferred - preprocessed) * 1000, 3),
+            "postprocess_ms": round((finished - inferred) * 1000, 3),
             "detections": boxes,
         }

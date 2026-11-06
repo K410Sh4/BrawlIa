@@ -45,7 +45,13 @@ class PlayerLocator:
         self.last_global_at = None
         self.diagnostics = {}
 
-    def _names(self, hsv, evidence=None, region=None):
+    def _names(self, hsv, evidence=None, region=None, *, highlight=False):
+        """Propõe faixas de glifos; a barra abaixo ainda deve confirmar cada nome.
+
+        Em vegetação, o verde amplo une letras e arbustos em um só contorno.
+        O fallback utiliza somente tons mais luminosos do mesmo intervalo HSV.
+        Ele é acionado apenas quando a via normal não encontrou jogador.
+        """
         h, w = hsv.shape[:2]
         scale = w / self.config.reference_width
         green = (
@@ -53,8 +59,16 @@ class PlayerLocator:
             if evidence
             else cv2.inRange(hsv, self.config.green_lo, self.config.green_hi)
         )
+        source = green
+        if highlight:
+            lo = (
+                max(self.config.green_lo[0], self.config.player_highlight_hue_min),
+                self.config.green_lo[1],
+                max(self.config.green_lo[2], self.config.player_highlight_value_min),
+            )
+            source = cv2.inRange(hsv, lo, self.config.green_hi)
         rx, ry, rw, rh = region or (0, 0, w, h)
-        search = green[ry : ry + rh, rx : rx + rw]
+        search = source[ry : ry + rh, rx : rx + rw]
         merged = cv2.morphologyEx(
             search,
             cv2.MORPH_CLOSE,
@@ -75,7 +89,7 @@ class PlayerLocator:
             if not minimum <= bw <= 250 * scale:
                 continue
             # Efeitos verdes podem se ligar ao nome: isole sua faixa de glifos pela projeção horizontal.
-            projection = np.count_nonzero(green[y : y + bh, x : x + bw], axis=1)
+            projection = np.count_nonzero(source[y : y + bh, x : x + bw], axis=1)
             active = np.flatnonzero(
                 projection >= max(0.3 * bw, 0.40 * float(projection.max(initial=0)))
             )
@@ -93,7 +107,7 @@ class PlayerLocator:
                 and max(28 * scale, h * 0.13) <= y <= h * 0.88
             ):
                 continue
-            mask = green[y : y + bh, x : x + bw]
+            mask = source[y : y + bh, x : x + bw]
             _, _, stats, _ = cv2.connectedComponentsWithStats(mask)
             glyphs = sum(
                 1
@@ -106,8 +120,13 @@ class PlayerLocator:
             if glyphs < 3 or not 0.06 <= density <= 0.75:
                 rejected += 1
                 continue
+            # Assinatura comparável entre modo normal e fallback, sem alterar
+            # a semântica de identidade quando só muda a iluminação.
+            signature_mask = green[y : y + bh, x : x + bw]
             signature = (
-                cv2.resize(mask, (96, 18), interpolation=cv2.INTER_AREA).astype(float)
+                cv2.resize(
+                    signature_mask, (96, 18), interpolation=cv2.INTER_AREA
+                ).astype(float)
                 / 255
             )
             similarity = 1.0
@@ -124,6 +143,7 @@ class PlayerLocator:
             "name_candidates": len(names),
             "names_rejected_by_shape_or_reference": rejected,
             "fallback_without_name": False,
+            "name_mask_mode": "highlight" if highlight else "regular",
         }
         return names
 
@@ -189,9 +209,26 @@ class PlayerLocator:
         if not candidates and region:
             candidates = select(self._names(hsv, evidence))
             mode = "local_then_global"
+
+        highlight_attempted = False
+        highlight_used = False
+        if not candidates and self.config.player_highlight_fallback:
+            highlight_attempted = True
+            candidates = select(self._names(hsv, evidence, region, highlight=True))
+            if candidates:
+                mode = "local_highlight" if region else "global_highlight"
+                highlight_used = True
+            elif region:
+                candidates = select(self._names(hsv, evidence, highlight=True))
+                if candidates:
+                    mode = "local_then_global_highlight"
+                    highlight_used = True
+
         if mode != "local":
             self.last_global_at = now
         self.diagnostics["search_mode"] = mode
+        self.diagnostics["highlight_fallback_attempted"] = highlight_attempted
+        self.diagnostics["highlight_fallback_used"] = highlight_used
         if candidates:
             _, result, signature = max(candidates, key=lambda v: v[0])
             if self.previous is not None and now > self.last_seen:
