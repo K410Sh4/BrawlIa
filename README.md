@@ -87,6 +87,17 @@ python evaluate_dataset.py CAMINHO_DAS_CAPTURAS --config candidato.json --compar
 
 Somente PNGs aprovados/corrigidos por humano entram. O avaliador mede localização de barras em imagens independentes; não mede dono, pontos de vida exatos, estado da partida ou rastreamento temporal. Os rótulos precisam estar completos. Nenhuma rede é treinada automaticamente, nem há pesos de modelo incluídos. Consulte [o plano de dados](docs/DATASET.md).
 
+## Avaliação opcional com ONNX (experimental)
+
+A leitura ao vivo permanece heurística e não foi substituída. Há agora um
+adaptador **somente offline** para avaliar modelos ONNX externos em vídeos,
+com escalonamento de inferência, comparação de latência e seleção de
+CUDA/DirectML (AMD/Intel no Windows) com fallback para CPU. Nenhum modelo
+ou peso é incluído, e não há controle de jogo.
+
+Instruções: [ONNX OFFLINE](docs/ONNX_OFFLINE.md). A precisão somente poderá
+ser comparada com quadros revisados por pessoas.
+
 ## Desenvolvimento e testes
 
 ```bash
