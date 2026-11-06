@@ -114,7 +114,10 @@ class PipelineStats:
     error: str = ""
     last_latency_ms: float = 0.0
     capture_ms: float = 0.0
+    capture_processing_ms: float = 0.0
     frame_age_ms: float = 0.0
+    delivery_age_ms: float = 0.0
+    callback_ms: float = 0.0
 
 
 class VisionPipeline:
@@ -261,21 +264,29 @@ class VisionPipeline:
                 captured_unix = time.time()
                 frame = source.grab()
                 capture_ms = (time.perf_counter() - capture_started) * 1000
-                if self.adaptive is not None:
-                    self.adaptive.record_capture(capture_ms)
                 if frame is None:
                     raise RuntimeError("Capturador retornou um quadro vazio")
                 with self._stats_lock:
                     self._last_capture_at = time.perf_counter()
                     self.stats.captured += 1
                     self.stats.capture_ms = capture_ms
-                frame, geometry = crop_frame(frame, self.roi, self.source_aspect)
+                frame, geometry = crop_frame(
+                    frame,
+                    self.roi,
+                    self.source_aspect,
+                    copy_full_frame=not getattr(source, "fresh_frames", False),
+                )
                 quality = self.quality_monitor.inspect(frame, capture_started)
                 quality["flags"].extend(getattr(source, "quality_flags", []))
                 if isinstance(getattr(source, "quality_flags", None), list):
                     quality["occlusion_detection"] = "sampled_window_hit_test_heuristic"
                 with self._stats_lock:
                     self._quality = quality
+                capture_processing_ms = (time.perf_counter() - capture_started) * 1000
+                if self.adaptive is not None:
+                    self.adaptive.record_capture(capture_processing_ms)
+                with self._stats_lock:
+                    self.stats.capture_processing_ms = capture_processing_ms
                 self.slot.publish(
                     frame,
                     capture_ms,
@@ -283,6 +294,7 @@ class VisionPipeline:
                     {
                         "session_id": self.session_id,
                         "captured_unix": captured_unix,
+                        "capture_processing_ms": round(capture_processing_ms, 3),
                         **geometry,
                         "quality": quality,
                         "source_type": type(source).__name__,
@@ -375,12 +387,18 @@ class VisionPipeline:
                         "analysis_target_fps": self.analysis_fps,
                     }
                 self.analysis_rate.tick()
+                callback_started = time.perf_counter()
                 if self.on_observation:
                     self.on_observation(packet, detections)
                 self.on_result(annotated, detections)
+                delivered_at = time.perf_counter()
+                with self._stats_lock:
+                    self.stats.delivery_age_ms = (delivered_at - captured_at) * 1000
+                    self.stats.callback_ms = (delivered_at - callback_started) * 1000
                 if self.adaptive is not None:
                     self.adaptive.record_analysis(
-                        (time.perf_counter() - started) * 1000, age_ms
+                        (delivered_at - started) * 1000,
+                        (delivered_at - captured_at) * 1000,
                     )
                     self.target_fps, self.analysis_fps = self.adaptive.rates()
                 period = 1.0 / self.analysis_fps
