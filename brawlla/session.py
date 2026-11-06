@@ -201,6 +201,7 @@ class SessionController:
                     analysis_fps=options.analysis_fps,
                     max_width=options.max_width,
                     timestamped_analyzer=True,
+                    auto_fps=options.auto_fps,
                 )
                 if self.sampler:
                     self.sampler.start()

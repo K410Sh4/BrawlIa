@@ -111,9 +111,7 @@ def _bars(
     return sorted(result, key=lambda p: p.width * p.height, reverse=True)[:20]
 
 
-def _terrain(
-    hsv: np.ndarray, kind: str, config=None
-) -> tuple[np.ndarray, list[Region]]:
+def _terrain(hsv: np.ndarray, kind: str, config=None, *, include_contours=False):
     config = config or VisionConfig()
     if kind == "bush":
         mask = _range(hsv, config.bush_lo, config.bush_hi)
@@ -131,6 +129,10 @@ def _terrain(
         reverse=True,
     )[:30]
     reg = [Region(*cv2.boundingRect(c), int(cv2.contourArea(c))) for c in kept]
+    if include_contours:
+        # O observador de terreno já possui os contornos: não extraí-los
+        # novamente após preencher uma máscara intermediária.
+        return kept, reg
     region_mask = np.zeros_like(mask)
     cv2.drawContours(region_mask, kept, -1, 255, thickness=cv2.FILLED)
     return region_mask, reg
@@ -172,8 +174,7 @@ def detect(
     scene = []
     regions = {}
     for kind in ("bush", "wall"):
-        mask, _ = _terrain(terrain_hsv, kind, config)
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = _terrain(terrain_hsv, kind, config, include_contours=True)
         scaled = [
             np.round(c * np.array([[[w / terrain_width, h / terrain_height]]])).astype(
                 np.int32

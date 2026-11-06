@@ -30,3 +30,6 @@ jobs:
         run: python -m black --check .
       - name: Unit and integration tests
         run: python -m unittest discover -s tests -v
+      - name: Desktop one-button smoke (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python qa/ui_smoke.py

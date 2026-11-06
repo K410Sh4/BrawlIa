@@ -11,6 +11,7 @@ from typing import Callable
 import cv2
 import numpy as np
 from .domain import FramePacket
+from .adaptive import AdaptiveFps
 from .config import FPS_CHOICES
 from .dataset import QualityMonitor, crop_frame
 
@@ -139,6 +140,7 @@ class VisionPipeline:
         session_id: str = "",
         roi=None,
         source_aspect: float = 0,
+        auto_fps: bool = False,
     ):
         if target_fps not in FPS_CHOICES:
             raise ValueError("FPS de captura deve ser 5, 10, 15, 30 ou 60.")
@@ -157,6 +159,8 @@ class VisionPipeline:
         self.on_frame = on_frame
         self.target_fps = target_fps
         self.analysis_fps = min(analysis_fps, target_fps)
+        self.auto_fps = auto_fps
+        self.adaptive = AdaptiveFps(target_fps, self.analysis_fps) if auto_fps else None
         self.max_width = max_width
         self.stats = PipelineStats()
         self.slot = LatestFrame()
@@ -201,6 +205,11 @@ class VisionPipeline:
             from .metrics import percentile95
 
             counts["analysis_p95_ms"] = percentile95(self._latencies)
+            counts["adaptive_fps"] = (
+                self.adaptive.snapshot()
+                if self.adaptive is not None
+                else {"enabled": False}
+            )
             now = time.perf_counter()
             capture_reference = (
                 self._last_capture_at
@@ -244,7 +253,6 @@ class VisionPipeline:
 
     def _capture_loop(self) -> None:
         source = None
-        period = 1.0 / self.target_fps
         try:
             source = self.source_factory()  # MSS no próprio thread
             next_tick = time.perf_counter()
@@ -253,6 +261,8 @@ class VisionPipeline:
                 captured_unix = time.time()
                 frame = source.grab()
                 capture_ms = (time.perf_counter() - capture_started) * 1000
+                if self.adaptive is not None:
+                    self.adaptive.record_capture(capture_ms)
                 if frame is None:
                     raise RuntimeError("Capturador retornou um quadro vazio")
                 with self._stats_lock:
@@ -276,6 +286,7 @@ class VisionPipeline:
                         **geometry,
                         "quality": quality,
                         "source_type": type(source).__name__,
+                        "source_label": getattr(source, "source_label", ""),
                         "window_rect_screen_xywh": getattr(source, "_last_rect", None),
                     },
                 )
@@ -286,6 +297,7 @@ class VisionPipeline:
                     except Exception as exc:
                         self._set_error(exc)
                         break
+                period = 1.0 / self.target_fps
                 next_tick += period
                 sleep_s = next_tick - time.perf_counter()
                 if sleep_s > 0:
@@ -304,7 +316,6 @@ class VisionPipeline:
 
     def _analysis_loop(self) -> None:
         seq = 0
-        period = 1.0 / self.analysis_fps
         try:
             while not self._stop.is_set():
                 packet = self.slot.take_latest_after(seq)
@@ -367,6 +378,12 @@ class VisionPipeline:
                 if self.on_observation:
                     self.on_observation(packet, detections)
                 self.on_result(annotated, detections)
+                if self.adaptive is not None:
+                    self.adaptive.record_analysis(
+                        (time.perf_counter() - started) * 1000, age_ms
+                    )
+                    self.target_fps, self.analysis_fps = self.adaptive.rates()
+                period = 1.0 / self.analysis_fps
                 remaining = period - (time.perf_counter() - started)
                 if remaining > 0:
                     self._stop.wait(remaining)
