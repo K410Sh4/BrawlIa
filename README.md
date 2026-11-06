@@ -25,7 +25,7 @@ A pasta de destino aparece na interface. Arquivos de sessão ficam em:
 
 ## FPS dinâmicos
 
-Taxas de 5 até 60 FPS, limitadas por latência p90 de captura e análise,
+Taxas de 5 até 60 FPS, limitadas por latência p90 recente de captura e análise,
 com margem de segurança. Ajustes gradativos a cada janela de amostras de
 2 segundos. **Isso mede a capacidade efetiva da máquina, não a ocupação
 direta da GPU.** Na V1.0, a visão heurística ainda é executada em CPU/OpenCV.
@@ -33,6 +33,8 @@ Suporte de GPU via ONNX/DirectML permanece experimental e somente offline.
 
 O vídeo mantém FPS nominal fixo de 15 para preservar o formato MP4; o
 ritmo de captura/análise é adaptativo e consta em `sessao.json`.
+A V1.1 evita uma cópia desnecessária do quadro completo nas fontes MSS
+e considera também o tempo de entrega à gravação no feedback de FPS.
 
 ## Verificação
 

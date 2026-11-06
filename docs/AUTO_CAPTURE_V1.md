@@ -50,3 +50,19 @@ Verifique `sessao.json` → `pipeline.adaptive_fps`, além de
 `capture_fps`, `analysis_fps`, `frame_age_ms` e
 `replaced_before_analysis`. Faça dois testes comparáveis, com e sem
 gravação de vídeo, antes de otimizar a resolução de análise.
+
+## Ajustes técnicos V1.1
+
+- Captura MSS produz um buffer novo por quadro; a tela inteira deixa
+  de ser copiada uma segunda vez para essa fonte. Para fontes genéricas,
+  a cópia continua sendo o comportamento padrão de segurança.
+- Em `sessao.json`, `capture_ms` continua sendo o tempo de `grab()`.
+  `capture_processing_ms` inclui preparação, recorte e qualidade.
+  `delivery_age_ms` mede até a entrega ao gravador e à interface;
+  `callback_ms` isola o custo dos callbacks.
+- O controle adaptativo utiliza a janela dos 48 resultados recentes e
+  agora inclui o tempo dos callbacks no custo usado para ajustar FPS.
+  As alterações precisam de benchmark em sessões comparáveis para
+  confirmar qualquer ganho na RX 5700 XT.
+- O novo botão **Abrir gravação** abre a pasta da sessão, mesmo após o
+  reinício do aplicativo, sem precisar localizar o diretório manualmente.
