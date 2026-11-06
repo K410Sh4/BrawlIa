@@ -118,8 +118,16 @@ def decode_yolo(
         data = data[0]
     if data.ndim != 2:
         raise ValueError("Tensor YOLO deve ter duas dimensões após batch")
-    # YOLOv8 padrão exporta (atributos, candidatos); alguns já transpostos.
-    if data.shape[0] < data.shape[1] and data.shape[0] <= 256:
+    # Prioriza a contagem conhecida de classes para resolver N×C versus C×N.
+    # Nomes ausentes significam que a orientação precisa ser deduzida.
+    if export_format == "xyxy":
+        if data.shape[1] != 6 and data.shape[0] == 6:
+            data = data.T
+    elif classes:
+        attributes = len(classes) + 4
+        if data.shape[1] != attributes and data.shape[0] == attributes:
+            data = data.T
+    elif data.shape[0] < data.shape[1] and data.shape[0] <= 256:
         data = data.T
     if data.shape[0] == 0:
         return []
