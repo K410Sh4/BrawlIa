@@ -1,4 +1,4 @@
-# BrawlIA / Brawlla 0.11.0
+# BrawlIA / Brawlla 0.12.0
 
 [![Tests](https://github.com/K410Sh4/BrawlIa/actions/workflows/ci.yml/badge.svg)](https://github.com/K410Sh4/BrawlIa/actions/workflows/ci.yml)
 
@@ -16,6 +16,21 @@ Observador local de Brawl Stars no BlueStacks. Captura imagens, propõe barras/j
 No Linux: `python -m venv .venv`, ative o ambiente, instale `requirements.txt` e execute `python app.py`. A fonte Janela/Win32 é específica do Windows. ADB precisa estar disponível/configurado; não é necessário para os testes artificiais.
 
 `gerar_exe_windows.bat` compila um EXE no seu Windows com PyInstaller. O repositório contém código e inicializadores; não há EXE compilado nesta publicação.
+
+## Mudanças da 0.12.0
+
+- O jogador ganha uma chave de identidade baseada na **assinatura visual do
+  nome observado**, nunca na largura, porcentagem ou cor de HP.
+- Associação por nome visual tem prioridade sobre saltos de posição quando
+  a evidência do nome é suficientemente semelhante; nomes ausentes não geram
+  observações artificiais. O rastreador pode recuperar o ID após perda breve,
+  respeitando distância, validade do combate e tempo máximo configuráveis.
+- Impede reuso do mesmo ID para dois candidatos simultâneos com a mesma
+  assinatura; a decisão volta à geometria em caso de ambiguidade.
+- Sem OCR de texto: não lê literalmente o nome do jogador nem identifica
+  automaticamente os nomes de inimigos/caixas.
+- Novas métricas `identity_association`, `track_name_identity_key` e
+  evento `reidentified` no histórico para auditorias futuras.
 
 ## Mudanças da 0.11.0
 

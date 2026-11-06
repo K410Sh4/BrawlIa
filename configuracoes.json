@@ -17,7 +17,10 @@
     "max_gate_px": 220,
     "prediction_horizon_s": 0.25,
     "velocity_tau_s": 0.12,
-    "reference_width": 1280
+    "reference_width": 1280,
+    "name_reid_max_age_s": 6,
+    "name_reid_min_similarity": 0.55,
+    "name_reid_max_distance_px": 480
   },
   "vision": {
     "reference_width": 1280,
