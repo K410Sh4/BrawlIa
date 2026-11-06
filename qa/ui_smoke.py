@@ -5,6 +5,7 @@ gravação e encerramento no mesmo fluxo da interface real.
 """
 
 from pathlib import Path
+import sys
 import tempfile
 import time
 from unittest.mock import patch
@@ -12,7 +13,8 @@ from unittest.mock import patch
 import cv2
 import numpy as np
 
-from app import Brawlla
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from app import Brawlla  # noqa: E402
 
 raw = np.full((720, 1280, 3), (80, 100, 75), np.uint8)
 cv2.putText(
