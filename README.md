@@ -11,7 +11,7 @@ além de adaptar FPS de captura e análise à capacidade observada.
 
 1. Python 3.11 ou 3.12 recomendado.
 2. Extraia o ZIP e abra o BlueStacks numa janela visível.
-3. Execute \`iniciar_windows.bat\`.
+3. Execute `iniciar_windows.bat`.
 4. Clique em **Iniciar captura automática**. O mesmo botão encerra a sessão,
    finaliza os arquivos e libera outra captura.
 
@@ -19,7 +19,7 @@ O programa não acessa janelas ocultas ou minimizadas. MSS captura os
 pixels visíveis do desktop, portanto evite janelas sobre o emulador.
 
 A pasta de destino aparece na interface. Arquivos de sessão ficam em:
-\`%LOCALAPPDATA%\\Brawlla\\gravacoes\\<sessao>\`.
+`%LOCALAPPDATA%\\Brawlla\\gravacoes\\<sessao>`.
 
 ## FPS dinâmicos
 
@@ -30,18 +30,18 @@ direta da GPU.** Na V1.0, a visão heurística ainda é executada em CPU/OpenCV.
 Suporte de GPU via ONNX/DirectML permanece experimental e somente offline.
 
 O vídeo mantém FPS nominal fixo de 15 para preservar o formato MP4; o
-ritmo de captura/análise é adaptativo e consta em \`sessao.json\`.
+ritmo de captura/análise é adaptativo e consta em `sessao.json`.
 
 ## Verificação
 
-\`\`\`powershell
+```powershell
 python -m pip install -r requirements.txt -r requirements-dev.txt
 python -m unittest discover -s tests -v
-\`\`\`
+```
 
-Arquivos para auditar: \`analise.jsonl\`, \`video_frames.jsonl\`,
-\`analise.mp4\`, \`resumo.json\`, \`sessao.json\` e, quando elegíveis,
-amostras PNG com metadados na pasta \`capturas\`.
+Arquivos para auditar: `analise.jsonl`, `video_frames.jsonl`,
+`analise.mp4`, `resumo.json`, `sessao.json` e, quando elegíveis,
+amostras PNG com metadados na pasta `capturas`.
 
 **Guia detalhado:** [captura automática e desempenho](docs/AUTO_CAPTURE_V1.md).
 
