@@ -317,9 +317,7 @@ class Brawlla(tk.Tk):
                     bg=ACCENT,
                 )
                 if self.session.folder:
-                    self.destination.set(
-                        f"Última gravação: {self.session.folder}"
-                    )
+                    self.destination.set(f"Última gravação: {self.session.folder}")
                 if result and result.get("error"):
                     self.status.set("Falha: " + result["error"])
                 elif result and result.get("verified"):

@@ -15,9 +15,7 @@ class RecordingFolderTests(unittest.TestCase):
     def test_open_root_before_first_session(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            self.assertEqual(
-                recordings.recording_folder(root), root / "gravacoes"
-            )
+            self.assertEqual(recordings.recording_folder(root), root / "gravacoes")
 
     def test_latest_session_after_relaunch_and_current_priority(self):
         with tempfile.TemporaryDirectory() as directory:
