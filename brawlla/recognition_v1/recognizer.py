@@ -140,6 +140,10 @@ class RecognitionV1:
                 by2 = min(image.shape[0], by1 + body_h)
                 body = image[by1:by2, bx1:bx2]
                 signature = extract_silhouette(body)
+                stable_patch = (
+                    cv2.resize(body, (48, 48), interpolation=cv2.INTER_AREA)
+                    if signature is not None else None
+                )
                 detections.append(
                     Detection(
                         bbox=Rect(region.rect.x + x, region.rect.y + y, w, h),
@@ -148,6 +152,7 @@ class RecognitionV1:
                         confidence=confidence,
                         signature=signature,
                         fill_fraction=None,
+                        stable_patch=stable_patch,
                     )
                 )
         return detections

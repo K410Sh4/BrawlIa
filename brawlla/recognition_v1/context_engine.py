@@ -4,7 +4,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import math
 from .geometry import Rect
-from .silhouette import Signature, compare_silhouettes
+from .silhouette import Signature, compare_silhouettes, structural_change_ratio
+import numpy as np
 
 
 @dataclass
@@ -16,6 +17,7 @@ class Detection:
     signature: Signature | None = None
     fill_fraction: float | None = None
     source: str = "observed"
+    stable_patch: np.ndarray | None = None
 
 
 @dataclass
@@ -31,6 +33,9 @@ class Track:
     misses: int = 0
     signature: Signature | None = field(default=None, repr=False)
     fill_fraction: float | None = None
+    stable_patch: np.ndarray | None = field(default=None, repr=False)
+    structural_change: float | None = None
+    structural_streak: int = 0
 
     def to_dict(self) -> dict:
         return {
@@ -45,6 +50,8 @@ class Track:
             "misses": self.misses,
             "fill_fraction": self.fill_fraction,
             "health_exact": None,
+            "structural_change": self.structural_change,
+            "structural_streak": self.structural_streak,
         }
 
 
@@ -114,19 +121,38 @@ class ContextMemory:
                 track.last_seen = now
                 track.status = "observado"
                 track.misses = 0
+                if track.stable_patch is not None and det.stable_patch is not None:
+                    mask = np.ones(track.stable_patch.shape[:2], np.uint8)
+                    mask[:round(mask.shape[0] * 0.16)] = 0
+                    change = structural_change_ratio(
+                        track.stable_patch, det.stable_patch, mask
+                    )
+                    track.structural_change = change
+                    if change is not None and change >= 0.80:
+                        track.structural_streak += 1
+                        if track.structural_streak >= 2:
+                            track.status = "incerto"
+                            self.events.append({
+                                "event": "structural_change_persistent",
+                                "track_id": tid, "at": now,
+                                "change_ratio": round(change, 3),
+                                "streak": track.structural_streak,
+                            })
+                    else:
+                        track.structural_streak = 0
             track.signature = det.signature or track.signature
+            track.stable_patch = det.stable_patch if det.stable_patch is not None else track.stable_patch
             track.fill_fraction = det.fill_fraction
             claimed.add(tid)
         for tid, track in list(self.tracks.items()):
             if tid in claimed:
                 continue
             elapsed = max(0, now - track.last_seen)
-            if elapsed >= self.max_absence_s:
+            if elapsed >= self.max_absence_s and track.misses >= 3:
                 self.events.append({"event": "lost", "track_id": tid, "at": now})
                 del self.tracks[tid]
                 continue
             # Só afirmar 'ocluído' quando uma região que deveria conter o objeto foi vista.
-            cx, cy = track.bbox.center
             predicted = track.bbox.translated(
                 track.velocity[0] * min(elapsed, 0.4),
                 track.velocity[1] * min(elapsed, 0.4),

@@ -134,6 +134,12 @@ def run(
             result["full_screen_pixels"] = screen_size[0] * screen_size[1]
             result["processing_ms"] = round((time.perf_counter() - started) * 1000, 3)
             store.submit(result, regions)
+            if any(
+                event.get("event") == "structural_change_persistent"
+                and event.get("streak", 0) >= 3
+                for event in result["events"]
+            ):
+                policy.request_full_scan("mudanca_estrutural_persistente")
             samples += 1
             now = time.perf_counter()
             starts.append(now)
