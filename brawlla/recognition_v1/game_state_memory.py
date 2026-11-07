@@ -26,6 +26,7 @@ class GameStateMemory:
         self.last_confirmed: float | None = None
         self.anchor_streak = 0
         self.confidence = 0.0
+        self._confirmed_confidence = 0.0
         self._pending: str | None = None
         self._pending_votes = 0
 
@@ -33,6 +34,7 @@ class GameStateMemory:
         self.state = state
         self.confidence = max(0.5, min(1.0, float(confidence)))
         self.last_confirmed = now
+        self._confirmed_confidence = self.confidence
         if state == "combate":
             self.last_combat = now
         self._pending = None
@@ -73,7 +75,11 @@ class GameStateMemory:
     def evaluate_state_confidence(self, now: float) -> float:
         """Confiança operacional relativa, não probabilidade calibrada."""
         if self.state in TERMINAL_STATES:
-            return max(0.50, self.confidence * 0.93)
+            if self.last_confirmed is None:
+                elapsed_s = 0.0
+            else:
+                elapsed_s = max(0.0, now - self.last_confirmed)
+            return max(0.50, self._confirmed_confidence * (0.93**elapsed_s))
         if self.state == "combate" and self.last_combat is not None:
             ratio = min(1.0, max(0.0, (now - self.last_combat) / self.grace_s))
             return max(0.20, self.confidence * (1.0 - 0.60 * ratio))

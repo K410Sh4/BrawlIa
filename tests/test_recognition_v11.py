@@ -30,6 +30,29 @@ class MemoryStateTests(unittest.TestCase):
             memory.update(None, 10.5, "desconhecido")["name"], "resultados"
         )
 
+    def test_terminal_confidence_depends_on_elapsed_time_not_frame_count(self):
+        fast = GameStateMemory()
+        slow = GameStateMemory()
+        fast.update(None, 1.0, "resultados", 0.92)
+        slow.update(None, 1.0, "resultados", 0.92)
+        for n in range(1, 61):
+            fast.update(None, 1.0 + n / 30.0)
+        slow.update(None, 3.0)
+        self.assertEqual(fast.confidence, slow.confidence)
+        self.assertGreater(fast.confidence, 0.75)
+        self.assertEqual(fast.update(None, 3.0)["name"], "resultados")
+        self.assertAlmostEqual(fast.confidence, 0.92 * 0.93**2, places=7)
+
+    def test_terminal_reconfirmation_restores_confidence_anchor(self):
+        memory = GameStateMemory()
+        memory.update(None, 1.0, "resultados", 0.9)
+        memory.update(None, 10.0)
+        self.assertLess(memory.confidence, 0.9)
+        memory.update(None, 10.1, "resultados", 0.95)
+        self.assertAlmostEqual(memory.confidence, 0.95)
+        memory.update(None, 11.1)
+        self.assertAlmostEqual(memory.confidence, 0.95 * 0.93, places=7)
+
     def test_exit_terminal_requires_two_distinct_global_confirms(self):
         memory = GameStateMemory()
         memory.update(None, 1.0, "resultados", 0.91)
