@@ -8,6 +8,7 @@ from collections import Counter, defaultdict
 from difflib import SequenceMatcher
 from queue import Empty, Full, Queue
 import threading
+import time
 import unicodedata
 
 import cv2
@@ -90,10 +91,18 @@ class MatchRoster:
         self.had_combat = False
         self.attempts = 0
         self.last_roster = float("-inf")
+        self.last_roster_probe = float("-inf")
         self.last_combat = {}
         self.last_any_name = float("-inf")
         self.next_kind = "jogador_candidato"
         self.error = None
+        self.ocr_duration_ms = []
+        self.ocr_batches = 0
+        self.ocr_combat_reads = 0
+        self.ocr_slots = [
+            {"attempts": 0, "empty": 0, "low_confidence": 0, "accepted": 0,
+             "last_confidence": None} for _ in range(10)
+        ]
         self.local_id = None
         self.bindings = {}
         self.active_track_ids = set()
@@ -140,12 +149,18 @@ class MatchRoster:
                 except Empty:
                     return
                 try:
+                    started = time.perf_counter()
                     if kind == "roster":
                         answer = [read_name(self.engine, crop) for crop in payload]
                     else:
                         track_id, crop = payload
                         answer = (track_id, *read_name(self.engine, crop))
-                    self.completed.put((generation, kind, answer))
+                    self.completed.put(
+                        (
+                            generation, kind, answer,
+                            round((time.perf_counter() - started) * 1000, 2),
+                        )
+                    )
                 except Exception as exc:
                     self.completed.put((generation, "error", type(exc).__name__))
                 finally:
@@ -158,20 +173,34 @@ class MatchRoster:
     def _poll(self):
         while True:
             try:
-                generation, kind, payload = self.completed.get_nowait()
+                completed = self.completed.get_nowait()
+                generation, kind, payload = completed[:3]
             except Empty:
                 break
             if generation != self.generation:
                 continue
+            if len(completed) > 3 and isinstance(completed[3], (int, float)):
+                self.ocr_duration_ms.append(completed[3])
+                self.ocr_duration_ms = self.ocr_duration_ms[-12:]
             if kind == "error":
                 self.error = payload
             elif kind == "roster":
+                self.ocr_batches += 1
                 for slot, (name, confidence) in enumerate(payload):
+                    diag = self.ocr_slots[slot]
+                    diag["attempts"] += 1
+                    diag["last_confidence"] = round(confidence, 3)
+                    if not normalize_name(name):
+                        diag["empty"] += 1
+                        continue
                     if confidence < self.config.ocr_confidence:
+                        diag["low_confidence"] += 1
                         continue
                     key = normalize_name(name)
                     if len(key) < 4:
+                        diag["low_confidence"] += 1
                         continue
+                    diag["accepted"] += 1
                     self.votes[slot][key] += 1
                     winner, votes = self.votes[slot].most_common(1)[0]
                     if winner == key:
@@ -184,6 +213,7 @@ class MatchRoster:
                             else "tentative"
                         )
             elif kind == "combat":
+                self.ocr_combat_reads += 1
                 tid, name, confidence = payload
                 self._match_track(tid, name, confidence)
 
@@ -227,20 +257,26 @@ class MatchRoster:
         self._poll()
         if state == "combate":
             self.had_combat = True
-        elif roster_visible(frame):
-            if self.had_combat:
-                self.reset()  # Novo conjunto de jogadores após outra partida.
-            self.detected = True
-            if (
-                self.attempts < self.config.roster_frames
-                and timestamp - self.last_roster >= self.config.roster_interval_s
-            ):
-                crops = [crop_text(frame, r) for r in name_regions(frame)]
-                if all(crop is not None for crop in crops) and self._send(
-                    "roster", crops
+        elif (
+            (not self.detected or self.attempts < self.config.roster_frames
+             or self.had_combat)
+            and timestamp - self.last_roster_probe >= 0.15
+        ):
+            self.last_roster_probe = timestamp
+            if roster_visible(frame):
+                if self.had_combat:
+                    self.reset()  # Nova partida: nunca reaproveitar P01-P10.
+                self.detected = True
+                if (
+                    self.attempts < self.config.roster_frames
+                    and timestamp - self.last_roster >= self.config.roster_interval_s
                 ):
-                    self.attempts += 1
-                    self.last_roster = timestamp
+                    crops = [crop_text(frame, r) for r in name_regions(frame)]
+                    if all(crop is not None for crop in crops) and self._send(
+                        "roster", crops
+                    ):
+                        self.attempts += 1
+                        self.last_roster = timestamp
 
         if (
             self.detected
@@ -328,6 +364,18 @@ class MatchRoster:
                 p["status"] == "confirmed" for p in self.participants
             ),
             "bound_tracks": len(self.bindings),
+            "ocr_diagnostics": {
+                "queued_roster_batches": self.attempts,
+                "finished_roster_batches": self.ocr_batches,
+                "finished_combat_reads": self.ocr_combat_reads,
+                "recent_batch_ms": list(self.ocr_duration_ms),
+                "per_slot": [entry.copy() for entry in self.ocr_slots]
+                if self.detected else [],
+                "warning": (
+                    "OCR terminou sem nomes utilizáveis; revisar recortes e engine"
+                    if self.ocr_batches and not any(self.votes) else None
+                ),
+            },
             "participants": (
                 [item.copy() for item in self.participants] if self.detected else []
             ),
