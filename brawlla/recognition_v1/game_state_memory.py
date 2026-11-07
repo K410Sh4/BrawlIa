@@ -4,13 +4,12 @@ Não observar != observar ausência. Um resultado confirmado continua sendo
 resultado durante as aquisições regionais. Mudanças de tela exigem evidência
 nova, com dupla confirmação ao sair de estados terminais.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
-CONFIRMED_STATES = frozenset(
-    ("combate", "derrota", "resultados", "pre_partida")
-)
+CONFIRMED_STATES = frozenset(("combate", "derrota", "resultados", "pre_partida"))
 TERMINAL_STATES = frozenset(("derrota", "resultados"))
 
 
@@ -98,15 +97,13 @@ class GameStateMemory:
             self.anchor_streak = 0
 
         visual_observation = (
-            "NOT_CHECKED" if visual_state is None
-            else "ABSENT" if visual_state == "desconhecido"
-            else "PRESENT"
+            "NOT_CHECKED"
+            if visual_state is None
+            else "ABSENT" if visual_state == "desconhecido" else "PRESENT"
         )
         reason = "sem_evidencia_atual"
         if visual_state in CONFIRMED_STATES:
-            if self.confirm_transition(
-                visual_state, now, visual_confidence
-            ):
+            if self.confirm_transition(visual_state, now, visual_confidence):
                 reason = "state_detector"
             else:
                 reason = "transicao_pendente"
@@ -115,10 +112,7 @@ class GameStateMemory:
             # podem substituir uma tela terminal confirmada.
             reason = "estado_terminal_preservado"
             self.confidence = self.evaluate_state_confidence(now)
-        elif (
-            self.anchor_streak >= 2
-            and self.state != "combate"
-        ):
+        elif self.anchor_streak >= 2 and self.state != "combate":
             self._confirm("combate", now, 0.55)
             reason = "ancoras_heuristicas_incerto"
         elif self.preserve_last_state(now):
@@ -137,7 +131,8 @@ class GameStateMemory:
         return {
             "name": self.state,
             "confidence": round(self.confidence, 3),
-            "uncertain": reason in {
+            "uncertain": reason
+            in {
                 "ancoras_heuristicas_incerto",
                 "contexto_de_combate_preservado",
                 "estado_terminal_preservado",
@@ -167,6 +162,4 @@ class GameStateMemory:
         visual_confidence: float = 0.0,
     ) -> dict:
         """Compatibilidade com HUDContext.update() da V1."""
-        return self.observe_state(
-            anchors, now, visual_state, visual_confidence
-        )
+        return self.observe_state(anchors, now, visual_state, visual_confidence)

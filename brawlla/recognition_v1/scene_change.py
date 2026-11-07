@@ -3,6 +3,7 @@
 O monitor apenas solicita uma nova captura completa: ele NÃO atribui estados
 a partir de diferenças de pixels nem considera regiões não observadas.
 """
+
 from __future__ import annotations
 
 import cv2
@@ -15,8 +16,7 @@ TERMINAL_STATES = frozenset(("derrota", "resultados"))
 
 def scene_probe_rect(size: tuple[int, int]) -> Rect:
     w, h = size
-    return Rect(round(w * 0.35), round(h * 0.18),
-                round(w * 0.30), round(h * 0.32))
+    return Rect(round(w * 0.35), round(h * 0.18), round(w * 0.30), round(h * 0.32))
 
 
 def scene_signature(frame: np.ndarray) -> np.ndarray:
@@ -24,8 +24,9 @@ def scene_signature(frame: np.ndarray) -> np.ndarray:
     return cv2.resize(gray, (40, 32), interpolation=cv2.INTER_AREA)
 
 
-def detect_scene_transition(reference: np.ndarray, current: np.ndarray,
-                            threshold: float = 0.27) -> bool:
+def detect_scene_transition(
+    reference: np.ndarray, current: np.ndarray, threshold: float = 0.27
+) -> bool:
     if reference.shape != current.shape or reference.size == 0:
         return False
     difference = float(np.mean(cv2.absdiff(reference, current)) / 255.0)
@@ -33,8 +34,9 @@ def detect_scene_transition(reference: np.ndarray, current: np.ndarray,
 
 
 class SceneTransitionMonitor:
-    def __init__(self, change_votes: int = 2, threshold: float = 0.27,
-                 cooldown_s: float = 0.7):
+    def __init__(
+        self, change_votes: int = 2, threshold: float = 0.27, cooldown_s: float = 0.7
+    ):
         self.change_votes = change_votes
         self.threshold = threshold
         self.cooldown_s = cooldown_s
@@ -51,13 +53,12 @@ class SceneTransitionMonitor:
                 continue
             x = probe.x - region.rect.x
             y = probe.y - region.rect.y
-            return scene_signature(
-                region.image[y:y + probe.h, x:x + probe.w]
-            )
+            return scene_signature(region.image[y : y + probe.h, x : x + probe.w])
         return None
 
-    def observe(self, regions, size: tuple[int, int], state: str,
-                now: float, *, full: bool) -> bool:
+    def observe(
+        self, regions, size: tuple[int, int], state: str, now: float, *, full: bool
+    ) -> bool:
         if state not in TERMINAL_STATES:
             self.reference = None
             self.reference_state = None

@@ -46,12 +46,15 @@ def benchmark(folder: Path):
     )
     transitions = Counter(
         str(ev.get("from", "?")) + " -> " + str(ev.get("to", "?"))
-        for entry in entries for ev in entry.get("events", [])
+        for entry in entries
+        for ev in entry.get("events", [])
         if ev.get("event") == "state_change"
     )
     terminal_flaps = sum(
-        count for key, count in transitions.items()
-        if key in (
+        count
+        for key, count in transitions.items()
+        if key
+        in (
             "resultados -> desconhecido",
             "desconhecido -> resultados",
             "derrota -> desconhecido",

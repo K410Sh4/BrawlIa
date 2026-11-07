@@ -62,7 +62,8 @@ class DatasetStore:
                 (r.name, r.rect.xywh(), r.image.copy(), r.captured_at, reason)
                 for r in regions
             ]
-            if sample else []
+            if sample
+            else []
         )
         try:
             self.queue.put_nowait((dict(result), samples))
@@ -114,7 +115,9 @@ class DatasetStore:
                     events.write(encoded_observation)
                     self.bytes_saved += observation_cost
                     self.records += 1
-                    for index, (name, coords, frame, captured_at, reason) in enumerate(samples):
+                    for index, (name, coords, frame, captured_at, reason) in enumerate(
+                        samples
+                    ):
                         if self.written >= self.max_images:
                             break
                         if self.records % 16 == 0 and (
@@ -123,7 +126,8 @@ class DatasetStore:
                             self.error = "Pouco espaço livre, gravação encerrada"
                             break
                         duplicate_key = (
-                            name, tuple(coords),
+                            name,
+                            tuple(coords),
                             tuple(result["screen_resolution"]),
                             result.get("state", {}).get("name"),
                         )

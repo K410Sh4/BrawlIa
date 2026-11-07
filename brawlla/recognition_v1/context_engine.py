@@ -106,8 +106,7 @@ class ContextMemory:
                 )
                 del self.tracks[tid]
 
-    def _association_score(self, det: Detection, track: Track,
-                           now: float) -> float:
+    def _association_score(self, det: Detection, track: Track, now: float) -> float:
         if track.kind != det.kind:
             return float("-inf")
         elapsed = max(0.001, now - track.last_seen)
@@ -117,9 +116,7 @@ class ContextMemory:
         dx = det.bbox.center[0] - px
         dy = det.bbox.center[1] - py
         distance = math.hypot(dx, dy)
-        max_distance = max(
-            35, min(200, self.max_speed_px_s * elapsed + 30)
-        )
+        max_distance = max(35, min(200, self.max_speed_px_s * elapsed + 30))
         if distance > max_distance:
             return float("-inf")
         silhouette = compare_silhouettes(track.signature, det.signature)
@@ -193,9 +190,8 @@ class ContextMemory:
         # Process bounded observations; identity must not be driven only by
         # the greedy order of detection confidences.
         eligible = [
-            item for item in sorted(
-                detections, key=lambda d: d.confidence, reverse=True
-            )
+            item
+            for item in sorted(detections, key=lambda d: d.confidence, reverse=True)
             if 0.48 <= item.confidence <= 1.0
         ][:48]
         available = list(self.tracks.values())
@@ -220,15 +216,24 @@ class ContextMemory:
             tid = self._next_id
             self._next_id += 1
             self.tracks[tid] = Track(
-                tid, det.bbox, det.kind, det.color, det.confidence,
-                now, signature=det.signature,
+                tid,
+                det.bbox,
+                det.kind,
+                det.color,
+                det.confidence,
+                now,
+                signature=det.signature,
                 stable_patch=det.stable_patch,
                 fill_fraction=det.fill_fraction,
                 body_support=det.body_support,
             )
-            self.events.append({
-                "event": "candidate", "track_id": tid, "at": now,
-            })
+            self.events.append(
+                {
+                    "event": "candidate",
+                    "track_id": tid,
+                    "at": now,
+                }
+            )
             claimed.add(tid)
             new_count += 1
         for tid, track in self.tracks.items():

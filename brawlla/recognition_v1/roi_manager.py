@@ -211,12 +211,16 @@ class ROIManager:
         if state in ("derrota", "resultados"):
             # Resultado/derrota usam uma sonda de cena, não os botões do jogo.
             probe = CaptureRegion(
-                "scene_probe", scene_probe_rect(screen_size),
-                "scene_transition", 2,
+                "scene_probe",
+                scene_probe_rect(screen_size),
+                "scene_transition",
+                2,
             )
             self.regional_count += 1
             return CapturePlan(
-                False, [probe], "estado_terminal_regional",
+                False,
+                [probe],
+                "estado_terminal_regional",
                 self._coverage([probe], screen_size),
             )
         regions = self._hud_regions(screen_size)
@@ -224,7 +228,9 @@ class ROIManager:
             merged = self._merge(regions)
             self.regional_count += 1
             return CapturePlan(
-                False, merged, "estado_estavel_regional",
+                False,
+                merged,
+                "estado_estavel_regional",
                 self._coverage(merged, screen_size),
             )
 

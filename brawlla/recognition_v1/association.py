@@ -3,13 +3,15 @@
 Algoritmo húngaro em Python puro para matrizes pequenas, com opção explícita
 de não associar. Não exige scipy nem interfere no capturador MSS.
 """
+
 from __future__ import annotations
 
 import math
 
 
-def optimal_associations(scores: list[list[float]],
-                         minimum_score: float = 0.18) -> list[tuple[int, int]]:
+def optimal_associations(
+    scores: list[list[float]], minimum_score: float = 0.18
+) -> list[tuple[int, int]]:
     """Retorna pares (observação, rastro) com soma de afinidades máxima.
 
     Pontuações não finitas/abaixo do limiar não podem forçar uma associação.
@@ -27,10 +29,10 @@ def optimal_associations(scores: list[list[float]],
     # Minimização: custo=1-score, dummies têm custo da não associação.
     costs = [
         [
-            1.0 - value if math.isfinite(value) and value >= minimum_score
-            else 1000.0
+            1.0 - value if math.isfinite(value) and value >= minimum_score else 1000.0
             for value in row
-        ] + [1.0 - minimum_score] * n
+        ]
+        + [1.0 - minimum_score] * n
         for row in scores
     ]
     u = [0.0] * (n + 1)
@@ -74,8 +76,10 @@ def optimal_associations(scores: list[list[float]],
     pairs = []
     for col in range(1, count + 1):
         row = p[col] - 1
-        if row >= 0 and math.isfinite(scores[row][col - 1]) and (
-            scores[row][col - 1] >= minimum_score
+        if (
+            row >= 0
+            and math.isfinite(scores[row][col - 1])
+            and (scores[row][col - 1] >= minimum_score)
         ):
             pairs.append((row, col - 1))
     return sorted(pairs)
