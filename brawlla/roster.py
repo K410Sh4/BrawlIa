@@ -91,6 +91,8 @@ class MatchRoster:
         self.attempts = 0
         self.last_roster = float("-inf")
         self.last_combat = {}
+        self.last_any_name = float("-inf")
+        self.next_kind = "jogador_candidato"
         self.error = None
         self.local_id = None
         self.bindings = {}
@@ -240,25 +242,64 @@ class MatchRoster:
                     self.attempts += 1
                     self.last_roster = timestamp
 
-        if self.detected and state == "combate":
-            for obj in objects:
-                tid = obj.get("track_id")
-                region = obj.get("name_region")
-                if (
-                    obj.get("kind") != "jogador_candidato"
-                    or tid in self.bindings
-                    or not isinstance(tid, int)
-                    or not isinstance(region, (tuple, list))
-                    or len(region) != 4
-                    or timestamp - self.last_combat.get(tid, float("-inf"))
-                    < self.config.combat_interval_s
-                ):
+        if (
+            self.detected
+            and state == "combate"
+            and any(p["status"] == "confirmed" for p in self.participants)
+            and timestamp - self.last_any_name >= self.config.combat_interval_s
+        ):
+            # Um recorte por janela de tempo. Alterna prioridade entre
+            # jogador e outros personagens, sem sobrecarregar o FPS.
+            kinds = (
+                ("jogador_candidato", "personagem_possivel")
+                if self.next_kind == "jogador_candidato"
+                else ("personagem_possivel", "jogador_candidato")
+            )
+            for kind in kinds:
+                eligible = sorted(
+                    (
+                        obj
+                        for obj in objects
+                        if obj.get("kind") == kind
+                        and isinstance(obj.get("track_id"), int)
+                        and obj.get("track_id") not in self.bindings
+                        and obj.get("track_hits", 0) >= (
+                            5 if kind == "personagem_possivel" else 1
+                        )
+                    ),
+                    key=lambda obj: -obj.get("track_hits", 0),
+                )
+                if not eligible:
                     continue
-                x, y, w, h = region
-                crop = crop_text(frame, (x - 5, y - 5, x + w + 5, y + h + 5))
-                if crop is not None and self._send("combat", (tid, crop)):
-                    self.last_combat[tid] = timestamp
-                break
+                for obj in eligible:
+                    tid = obj["track_id"]
+                    if timestamp - self.last_combat.get(tid, float("-inf")) < 1.0:
+                        continue
+                    region = obj.get("name_region")
+                    if isinstance(region, (tuple, list)) and len(region) == 4:
+                        x, y, w, h = region
+                        box = (x - 5, y - 5, x + w + 5, y + h + 5)
+                    elif kind == "personagem_possivel":
+                        # Hipótese de posição do nome acima da barra.
+                        # Uma ausência de OCR não gera identidade.
+                        x, y, w = (obj.get(k) for k in ("x", "y", "width"))
+                        if not all(isinstance(n, (int, float)) for n in (x, y, w)):
+                            continue
+                        box = (x - 35, y - 32, x + w + 35, y - 4)
+                    else:
+                        continue
+                    crop = crop_text(frame, box)
+                    if crop is not None and self._send("combat", (tid, crop)):
+                        self.last_combat[tid] = timestamp
+                        self.last_any_name = timestamp
+                        self.next_kind = (
+                            "personagem_possivel"
+                            if kind == "jogador_candidato"
+                            else "jogador_candidato"
+                        )
+                        break
+                if self.last_any_name == timestamp:
+                    break
 
         for obj in objects:
             pid = self.bindings.get(obj.get("track_id"))
