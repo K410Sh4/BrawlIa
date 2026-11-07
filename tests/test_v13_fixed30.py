@@ -55,7 +55,8 @@ class FixedThirtyFpsTests(unittest.TestCase):
         data = review.snapshot()
         self.assertEqual(data["flag_counts"]["low_hp_unconfirmed_identity"], 3)
         flagged = [
-            event for event in data["review_points"]
+            event
+            for event in data["review_points"]
             if event["reason"] == "low_hp_unconfirmed_identity"
         ]
         self.assertEqual(len(flagged), 1)

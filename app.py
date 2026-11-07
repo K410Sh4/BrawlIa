@@ -272,7 +272,9 @@ class Brawlla(tk.Tk):
                 messagebox.showerror("Falha na captura", str(exc))
             return
         self.start_btn.configure(text="■  PARAR E SALVAR", bg="#f19b91")
-        self.status.set("Capturando em modo de 30 FPS fixos; a taxa efetiva depende do PC.")
+        self.status.set(
+            "Capturando em modo de 30 FPS fixos; a taxa efetiva depende do PC."
+        )
         self.destination.set(f"Gravando em: {self.session.folder}")
         self.detail.set(
             "Vídeo 30 FPS e análise JSONL · PNG desativado · Janela visível"
