@@ -97,7 +97,7 @@ class RosterTests(unittest.TestCase):
         roster.active_track_ids = {1}
         for _ in range(2):
             roster._match_track(99, "SkyZynoxCrow", 0.96)
-        self.assertEqual(roster.bindings, {1:"P01"})
+        self.assertEqual(roster.bindings, {1: "P01"})
         roster.active_track_ids = set()
         roster._match_track(99, "SkyZynoxCrow", 0.96)
         self.assertEqual(roster.bindings, {99: "P01"})
