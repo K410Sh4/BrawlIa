@@ -93,6 +93,7 @@ class MatchRoster:
         self.error = None
         self.local_id = None
         self.bindings = {}
+        self.active_track_ids = set()
         self.votes = [Counter() for _ in range(10)]
         self.track_votes = defaultdict(Counter)
         self.participants = [
@@ -204,32 +205,38 @@ class MatchRoster:
         winner = candidates[0][1]
         self.track_votes[track_id][winner] += 1
         if (
-            self.track_votes[track_id][winner] >= self.config.match_votes
-            and len(self.track_votes[track_id]) == 1
-            and winner not in self.bindings.values()
+            self.track_votes[track_id][winner] < self.config.match_votes
+            or len(self.track_votes[track_id]) != 1
         ):
-            self.bindings[track_id] = winner
+            return
+        previous = next(
+            (tid for tid, pid in self.bindings.items() if pid == winner), None
+        )
+        if previous is not None:
+            if previous in self.active_track_ids:
+                return
+            del self.bindings[previous]
+        self.bindings[track_id] = winner
 
     def observe(self, frame, state, timestamp, objects):
         """Não aguarda OCR; publica somente identidades efetivamente confirmadas."""
         self._poll()
         if state == "combate":
             self.had_combat = True
-        elif not self.had_combat or state == "pre_partida":
-            if roster_visible(frame):
-                if self.had_combat:
-                    self.reset()
-                self.detected = True
-                if (
-                    self.attempts < self.config.roster_frames
-                    and timestamp - self.last_roster >= self.config.roster_interval_s
+        elif roster_visible(frame):
+            if self.had_combat:
+                self.reset()  # Novo conjunto de jogadores após outra partida.
+            self.detected = True
+            if (
+                self.attempts < self.config.roster_frames
+                and timestamp - self.last_roster >= self.config.roster_interval_s
+            ):
+                crops = [crop_text(frame, r) for r in name_regions(frame)]
+                if all(crop is not None for crop in crops) and self._send(
+                    "roster", crops
                 ):
-                    crops = [crop_text(frame, r) for r in name_regions(frame)]
-                    if all(crop is not None for crop in crops) and self._send(
-                        "roster", crops
-                    ):
-                        self.attempts += 1
-                        self.last_roster = timestamp
+                    self.attempts += 1
+                    self.last_roster = timestamp
 
         if self.detected and state == "combate":
             for obj in objects:
@@ -259,6 +266,9 @@ class MatchRoster:
             )
             if pid and obj.get("kind") == "jogador_candidato":
                 self.local_id = pid
+        self.active_track_ids = {
+            obj.get("track_id") for obj in objects if isinstance(obj.get("track_id"), int)
+        }
         for item in self.participants:
             item["is_local"] = item["participant_id"] == self.local_id
         return self.snapshot()
