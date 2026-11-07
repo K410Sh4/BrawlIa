@@ -2,7 +2,6 @@
 
 from dataclasses import replace
 import os
-from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
