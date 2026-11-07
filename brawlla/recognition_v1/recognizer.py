@@ -142,7 +142,8 @@ class RecognitionV1:
                 signature = extract_silhouette(body)
                 stable_patch = (
                     cv2.resize(body, (48, 48), interpolation=cv2.INTER_AREA)
-                    if signature is not None else None
+                    if signature is not None
+                    else None
                 )
                 detections.append(
                     Detection(

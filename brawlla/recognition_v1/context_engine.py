@@ -123,7 +123,7 @@ class ContextMemory:
                 track.misses = 0
                 if track.stable_patch is not None and det.stable_patch is not None:
                     mask = np.ones(track.stable_patch.shape[:2], np.uint8)
-                    mask[:round(mask.shape[0] * 0.16)] = 0
+                    mask[: round(mask.shape[0] * 0.16)] = 0
                     change = structural_change_ratio(
                         track.stable_patch, det.stable_patch, mask
                     )
@@ -132,16 +132,21 @@ class ContextMemory:
                         track.structural_streak += 1
                         if track.structural_streak >= 2:
                             track.status = "incerto"
-                            self.events.append({
-                                "event": "structural_change_persistent",
-                                "track_id": tid, "at": now,
-                                "change_ratio": round(change, 3),
-                                "streak": track.structural_streak,
-                            })
+                            self.events.append(
+                                {
+                                    "event": "structural_change_persistent",
+                                    "track_id": tid,
+                                    "at": now,
+                                    "change_ratio": round(change, 3),
+                                    "streak": track.structural_streak,
+                                }
+                            )
                     else:
                         track.structural_streak = 0
             track.signature = det.signature or track.signature
-            track.stable_patch = det.stable_patch if det.stable_patch is not None else track.stable_patch
+            track.stable_patch = (
+                det.stable_patch if det.stable_patch is not None else track.stable_patch
+            )
             track.fill_fraction = det.fill_fraction
             claimed.add(tid)
         for tid, track in list(self.tracks.items()):
