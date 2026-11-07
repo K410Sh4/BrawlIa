@@ -6,7 +6,7 @@ import math
 import warnings
 from pathlib import Path
 
-VERSION = "1.2.0"
+VERSION = "1.3.0"
 VERSION_SHORT = VERSION
 SCHEMA_VERSION = 2
 FPS_CHOICES = (5, 10, 15, 30, 60)
@@ -278,12 +278,12 @@ def load_config(path: Path | None = None) -> AnalyzerConfig:
 class SessionOptions:
     auto_fps: bool = False
     capture_fps: int = 30
-    analysis_fps: int = 15
+    analysis_fps: int = 30
     max_width: int = 1280
     record_samples: bool = False
     sample_fps: int = 2
     record_video: bool = False
-    video_fps: int = 15
+    video_fps: int = 30
     roi: tuple[float, float, float, float] | None = None
     source_aspect: float = 0.0
     burst_fps: int = 10

@@ -115,7 +115,7 @@ class Brawlla(tk.Tk):
         ).pack(side="left", padx=12)
         tk.Label(
             header,
-            text="Captura, análise e registro com FPS ajustado à capacidade real do sistema.",
+            text="Captura, análise e vídeo configurados em 30 FPS; monitoramento em tempo real.",
             bg=BG,
             fg=MUTED,
             anchor="w",
@@ -251,15 +251,13 @@ class Brawlla(tk.Tk):
         if self.session.state != "idle":
             return
         options = SessionOptions(
-            auto_fps=True,
+            auto_fps=False,
             capture_fps=30,
-            analysis_fps=15,
+            analysis_fps=30,
             max_width=1280,
-            record_samples=True,
-            sample_fps=2,
+            record_samples=False,
             record_video=True,
-            video_fps=15,
-            burst_fps=10,
+            video_fps=30,
         )
         try:
             # Janela descoberta dentro do worker, no próprio thread MSS.
@@ -274,10 +272,12 @@ class Brawlla(tk.Tk):
                 messagebox.showerror("Falha na captura", str(exc))
             return
         self.start_btn.configure(text="■  PARAR E SALVAR", bg="#f19b91")
-        self.status.set("Capturando; FPS em calibração automática.")
+        self.status.set(
+            "Capturando em modo de 30 FPS fixos; a taxa efetiva depende do PC."
+        )
         self.destination.set(f"Gravando em: {self.session.folder}")
         self.detail.set(
-            "Vídeo, JSONL e PNGs ativados · A janela deve continuar visível"
+            "Vídeo 30 FPS e análise JSONL · PNG desativado · Janela visível"
         )
 
     def _stop(self):
@@ -349,11 +349,10 @@ class Brawlla(tk.Tk):
                 else:
                     self.status.set("Sessão encerrada. Consulte os registros.")
                 if sample_error:
-                    self.detail.set("Falha ao salvar imagens PNG: " + sample_error)
+                    self.detail.set("Falha em amostras: " + sample_error)
                 elif result:
-                    saved = (result.get("samples") or {}).get("saved", 0)
                     self.detail.set(
-                        f"Histórico salvo · {saved} PNGs · Leitura somente observação"
+                        "Vídeo, histórico e autoavaliação salvos · Sem PNGs"
                     )
             elif kind == "recording_error":
                 self.detail.set(
@@ -369,12 +368,10 @@ class Brawlla(tk.Tk):
             self.analysis_metric.value.set(f"{stats['analysis_fps']:.1f} FPS")
             self.latency_metric.value.set(f"{stats['analysis_p95_ms']:.0f} ms")
             self.age_metric.value.set(f"{stats['frame_age_ms']:.0f} ms")
-            auto = stats.get("adaptive_fps", {})
             if self.active:
                 self.status.set(
-                    f"Captura {auto.get('capture_target_fps', pipe.target_fps)} FPS"
-                    f" · Análise {auto.get('analysis_target_fps', pipe.analysis_fps)} FPS"
-                    f" · {auto.get('reason', 'calibrando').replace('_', ' ')}"
+                    f"Meta fixa: 30 FPS · Captura real: {stats['capture_fps']:.1f}"
+                    f" · Análise real: {stats['analysis_fps']:.1f} FPS"
                 )
             if self.active and stats.get("error"):
                 self.status.set("Erro de captura: " + stats["error"])

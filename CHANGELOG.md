@@ -1,3 +1,10 @@
+# 1.3.0
+
+- Painel automático com metas fixas de captura/análise/vídeo em 30 FPS.
+- Desligado o gravador de PNG; vídeo e JSONL permanecem para auditoria.
+- Telemetria e autoavaliação de casos incertos, sem autotreinamento inseguro.
+- Distingue FPS alvo de FPS realmente alcançado. Vídeo pode repetir quadros.
+
 # 1.2.0
 
 - Cadastro de participantes P01–P10 na apresentação antes do combate.

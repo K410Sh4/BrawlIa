@@ -66,3 +66,14 @@ gravação de vídeo, antes de otimizar a resolução de análise.
   confirmar qualquer ganho na RX 5700 XT.
 - O novo botão **Abrir gravação** abre a pasta da sessão, mesmo após o
   reinício do aplicativo, sem precisar localizar o diretório manualmente.
+
+## Perfil V1.3 — metas fixas
+
+O painel agora solicita 30 FPS de captura e análise, com vídeo nominal de
+30 FPS e `record_samples=False`; o controlador adaptativo anterior não
+é instanciado. Gravações em vídeo não significam 30 observações únicas/s:
+o gravador repete quadros quando a análise não alcança a meta.
+O observador grava `autoavaliacao.json` no fim, com intervalos de
+detecções duvidosas, sem gravar PNG. Esses eventos são prioridades para
+revisão e avaliação supervisionada, **não prova de erro nem melhoria de
+acurácia**. Não são aplicadas alterações automáticas aos pesos ou limiares.
