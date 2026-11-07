@@ -20,7 +20,7 @@ class DatasetCurator:
         self.uncertain_interval_s = uncertain_interval_s
         self.duplicate_hamming_max = duplicate_hamming_max
         self._last_sample = float("-inf")
-        self._recent_hashes: dict[tuple, int] = {}
+        self._recent_hashes: dict[tuple, tuple[int, int, int]] = {}
         self.duplicates_skipped = 0
 
     def select_uncertain_frames(self, result: dict) -> bool:
@@ -55,7 +55,7 @@ class DatasetCurator:
         return True, reason
 
     @staticmethod
-    def _hash(frame: np.ndarray) -> int:
+    def _hash(frame: np.ndarray) -> tuple[int, int, int]:
         if frame.ndim != 3 or frame.size == 0:
             raise ValueError("Imagem BGR inválida")
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -64,7 +64,7 @@ class DatasetCurator:
         value = 0
         for bit in bits.flat:
             value = (value << 1) | int(bit)
-        return value
+        return value, round(float(np.mean(gray))), round(float(np.std(gray)))
 
     def detect_duplicate_samples(self, frame: np.ndarray, key: tuple,
                                  *, force: bool = False) -> bool:
@@ -81,7 +81,10 @@ class DatasetCurator:
         duplicate = (
             not force
             and previous is not None
-            and (current ^ previous).bit_count() <= self.duplicate_hamming_max
+            and (current[0] ^ previous[0]).bit_count()
+            <= self.duplicate_hamming_max
+            and abs(current[1] - previous[1]) <= 12
+            and abs(current[2] - previous[2]) <= 10
         )
         if duplicate:
             self.duplicates_skipped += 1

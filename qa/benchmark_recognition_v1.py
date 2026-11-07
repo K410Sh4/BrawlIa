@@ -44,6 +44,20 @@ def benchmark(folder: Path):
     events = Counter(
         item.get("event", "unknown") for e in entries for item in e.get("events", [])
     )
+    transitions = Counter(
+        str(ev.get("from", "?")) + " -> " + str(ev.get("to", "?"))
+        for entry in entries for ev in entry.get("events", [])
+        if ev.get("event") == "state_change"
+    )
+    terminal_flaps = sum(
+        count for key, count in transitions.items()
+        if key in (
+            "resultados -> desconhecido",
+            "desconhecido -> resultados",
+            "derrota -> desconhecido",
+            "desconhecido -> derrota",
+        )
+    )
     reasons = Counter(e.get("capture_reason", "unknown") for e in entries)
     suppressed = sum(int(e.get("roi_suppressed_targets", 0)) for e in entries)
     hud_scans = sum(bool(e.get("hud_check_performed", False)) for e in entries)
@@ -61,6 +75,8 @@ def benchmark(folder: Path):
             round(1 - acquired / possible, 4) if possible else None
         ),
         "events": dict(events),
+        "state_transitions": dict(transitions),
+        "terminal_unknown_transitions": terminal_flaps,
         "capture_reasons": dict(reasons),
         "suppressed_roi_targets": suppressed,
         "hud_checks": hud_scans,

@@ -127,3 +127,31 @@ A escrita de PNGs não dispara para cada novo candidato provisório.
 O benchmark local separa custos de captura, análise, HUD, enfileiramento
 e razões para varreduras globais. Não mede acurácia sem rótulos humanos.
 Capturas anteriores com overlays não substituem validação no BlueStacks.
+
+
+## Reconhecimento V1.1 — memória contextual e curadoria
+
+- GameStateMemory distingue PRESENT, ABSENT e NOT_CHECKED. Regiões não
+  examinadas não são evidências negativas; derrota/resultados confirmados
+  permanecem até uma transição positiva consistente.
+- Sair de um estado terminal requer duas confirmações globais do novo
+  estado (exceto derrota -> resultados, estabilizada pelo detector legado).
+- Círculos e sobreposições do BlueStacks permanecem pistas heurísticas;
+  não alteram sozinhos um resultado/derrota já confirmado.
+- SceneTransitionMonitor analisa uma pequena ROI de cena terminal e
+  solicita varredura completa após mudança persistente. Não inventa estados.
+- ROIManager reduz a frequência global em derrota/resultados para 1,5 s
+  e deixa de monitorar botões de ataque como indício principal nessa fase.
+- ContextMemory utiliza associação global ótima com limite de candidatos;
+  a associação por cores e silhuetas segue heurística.
+- DatasetCurator salva motivo da coleta, preserva eventos críticos e
+  descarta amostras locais quase idênticas, mantendo ground_truth=false.
+- O benchmark passa a mostrar transições terminais/desconhecido e
+  custo por etapa do processamento.
+
+Base histórica (não resultado V1.1): 882 ciclos, 14,7 FPS,
+77,58% de economia de pixels, 50,009 ms P95, 53 mudanças de
+estado e 51 alternâncias entre estado terminal e desconhecido.
+
+A V1.1 ainda requer teste real no BlueStacks e revisão humana de amostras
+para comprovar precisão, recall ou ganhos de FPS/CPU.

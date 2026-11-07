@@ -265,6 +265,12 @@ class RecognitionV1:
         scene_change = self.scene_monitor.observe(
             regions, screen_size, state["name"], now, full=full
         )
+        if scene_change:
+            event = event or {
+                "event": "scene_change_suspected",
+                "at": now,
+                "state": state["name"],
+            }
 
         detections = []
         if state["name"] == "combate":
@@ -280,7 +286,7 @@ class RecognitionV1:
         if event:
             events.insert(0, event)
         result = {
-            "recognition_version": "1.0",
+            "recognition_version": "1.1.0",
             "frame_id": self.frames,
             "timestamp_s": now,
             "screen_resolution": list(screen_size),

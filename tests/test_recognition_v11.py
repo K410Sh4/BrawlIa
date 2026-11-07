@@ -143,6 +143,8 @@ class DatasetCuratorTests(unittest.TestCase):
         key = ("scene", (0, 0, 64, 32), (640, 360), "combate")
         self.assertFalse(curator.detect_duplicate_samples(raw, key))
         self.assertTrue(curator.detect_duplicate_samples(raw, key))
+        bright = np.full_like(raw, 255)
+        self.assertFalse(curator.detect_duplicate_samples(bright, key))
         self.assertFalse(curator.detect_duplicate_samples(raw, key, force=True))
         event = {"timestamp_s": 1.1, "events": [
             {"event": "state_change"}], "state": {"name": "resultados"}}
