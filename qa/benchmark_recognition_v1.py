@@ -1,4 +1,5 @@
 """Diagnóstico de desempenho do dataset local Recognition V1 (não mede acurácia)."""
+
 from __future__ import annotations
 
 import argparse
@@ -19,9 +20,9 @@ def benchmark(folder: Path):
     folder = folder.resolve()
     entries = [
         json.loads(line)
-        for line in (folder / "observations.jsonl").read_text(
-            encoding="utf-8"
-        ).splitlines()
+        for line in (folder / "observations.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
         if line.strip()
     ]
     if not entries:
@@ -32,22 +33,21 @@ def benchmark(folder: Path):
     possible = sum(int(e.get("full_screen_pixels", 0)) for e in entries)
     modes = Counter(e.get("capture_mode", "unknown") for e in entries)
     events = Counter(
-        item.get("event", "unknown")
-        for e in entries for item in e.get("events", [])
+        item.get("event", "unknown") for e in entries for item in e.get("events", [])
     )
     result = {
         "cycles": len(entries),
         "duration_s": round(duration, 3),
-        "effective_fps": round((len(entries) - 1) / duration, 3)
-        if duration else 0,
+        "effective_fps": round((len(entries) - 1) / duration, 3) if duration else 0,
         "capture_and_analysis_avg_ms": round(statistics.mean(time_ms), 3),
         "capture_and_analysis_p95_ms": round(percentile95(time_ms), 3),
         "full_cycles": modes.get("full", 0),
         "regional_cycles": modes.get("regional", 0),
         "pixels_acquired": acquired,
         "pixels_if_full": possible,
-        "pixel_reduction_fraction": round(1 - acquired / possible, 4)
-        if possible else None,
+        "pixel_reduction_fraction": (
+            round(1 - acquired / possible, 4) if possible else None
+        ),
         "events": dict(events),
         "warning": (
             "Economia de pixels não é economia de CPU nem acurácia. "
