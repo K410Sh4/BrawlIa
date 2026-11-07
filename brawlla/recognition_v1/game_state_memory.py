@@ -79,7 +79,7 @@ class GameStateMemory:
                 elapsed_s = 0.0
             else:
                 elapsed_s = max(0.0, now - self.last_confirmed)
-            return max(0.50, self._confirmed_confidence * (0.93 ** elapsed_s))
+            return max(0.50, self._confirmed_confidence * (0.93**elapsed_s))
         if self.state == "combate" and self.last_combat is not None:
             ratio = min(1.0, max(0.0, (now - self.last_combat) / self.grace_s))
             return max(0.20, self.confidence * (1.0 - 0.60 * ratio))
