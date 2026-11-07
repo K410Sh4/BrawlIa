@@ -16,6 +16,7 @@ from .geometry import Rect
 from .context_engine import ContextMemory, Detection
 from .hud_context import HUDContext, HUDAnchors, detect_controls
 from .silhouette import extract_silhouette
+from .bar_validation import evaluate_bar_evidence
 
 
 @dataclass
@@ -23,6 +24,13 @@ class RegionImage:
     name: str
     rect: Rect
     image: np.ndarray
+    # Source roles survive merging, unlike a single name ("hud_right").
+    sources: tuple[tuple[str, Rect], ...] = ()
+    captured_at: float | None = None
+
+    @property
+    def source_regions(self) -> tuple[tuple[str, Rect], ...]:
+        return self.sources or ((self.name, self.rect),)
 
     def __post_init__(self):
         if (
@@ -46,19 +54,18 @@ class RecognitionV1:
         self.full_frames = 0
         self.regional_frames = 0
         self.last_result = None
+        self._last_hud_check = float("-inf")
+        self._hud_interval_s = 0.25
+        self._last_hud_elapsed_ms = 0.0
 
     @staticmethod
     def _hud_regions(regions: list[RegionImage], size: tuple[int, int]):
         width, height = size
-        left = Rect(
-            0, round(height * 0.60), round(width * 0.40), height - round(height * 0.60)
-        )
-        right = Rect(
-            round(width * 0.60),
-            round(height * 0.60),
-            width - round(width * 0.60),
-            height - round(height * 0.60),
-        )
+        # Must match ROIManager's compact 20%x30% control neighborhoods.
+        top = round(height * 0.70)
+        side = round(width * 0.20)
+        left = Rect(0, top, side, height - top)
+        right = Rect(width - side, top, side, height - top)
         anchors = HUDAnchors()
         for region in regions:
             for target in (left, right):
@@ -122,15 +129,7 @@ class RecognitionV1:
                 ):
                     continue
                 # Aparência de barra é apenas candidata; não infere HP exato.
-                margin = max(2, round(5 * scale))
-                x1, y1 = max(0, x - margin), max(0, y - margin)
-                x2 = min(image.shape[1], x + w + margin)
-                y2 = min(image.shape[0], y + h + margin)
-                sample = hsv[y1:y2, x1:x2]
-                if sample.size == 0:
-                    continue
-                darker = float(np.mean(sample[:, :, 2] < 100))
-                confidence = min(0.78, 0.40 + 0.45 * darker)
+                # Combine body / container / glyph evidence without declaring HP.
                 # Assinatura do corpo, não do texto da barra.
                 body_w = round(max(w * 1.7, 38 * scale))
                 body_h = round(max(w * 1.35, 50 * scale))
@@ -139,6 +138,9 @@ class RecognitionV1:
                 bx2 = min(image.shape[1], bx1 + body_w)
                 by2 = min(image.shape[0], by1 + body_h)
                 body = image[by1:by2, bx1:bx2]
+                evidence = evaluate_bar_evidence(hsv, x, y, w, h, body, scale)
+                if evidence["confidence"] < 0.48:
+                    continue
                 signature = extract_silhouette(body)
                 stable_patch = (
                     cv2.resize(body, (48, 48), interpolation=cv2.INTER_AREA)
@@ -150,13 +152,40 @@ class RecognitionV1:
                         bbox=Rect(region.rect.x + x, region.rect.y + y, w, h),
                         kind="barra_vida_candidata",
                         color=color,
-                        confidence=confidence,
+                        confidence=evidence["confidence"],
                         signature=signature,
                         fill_fraction=None,
                         stable_patch=stable_patch,
+                        body_support=evidence["body_support"],
                     )
                 )
         return detections
+
+    @staticmethod
+    def _bar_search_images(region: RegionImage, full: bool) -> list[RegionImage]:
+        """Only inspect intended target areas, not every merged HUD pixel.
+
+        All crops carry global coordinates; source roles are never discarded.
+        """
+        if full:
+            return [region]
+        areas: list[RegionImage] = []
+        for name, source in region.source_regions:
+            if not (name.startswith("target_") or name == "search_center"):
+                continue
+            clipped = Rect(
+                max(source.x, region.rect.x),
+                max(source.y, region.rect.y),
+                min(source.x + source.w, region.rect.x + region.rect.w)
+                - max(source.x, region.rect.x),
+                min(source.y + source.h, region.rect.y + region.rect.h)
+                - max(source.y, region.rect.y),
+            )
+            ox = clipped.x - region.rect.x
+            oy = clipped.y - region.rect.y
+            img = region.image[oy : oy + clipped.h, ox : ox + clipped.w]
+            areas.append(RegionImage(name, clipped, img))
+        return areas
 
     @staticmethod
     def _deduplicate(detections: list[Detection]) -> list[Detection]:
@@ -195,10 +224,21 @@ class RecognitionV1:
             self.full_frames += 1
         else:
             self.regional_frames += 1
-        anchors = self._hud_regions(regions, screen_size)
         visual = None
         if full:
             visual = self.state_detector.detect(regions[0].image, timestamp_s=now)
+        # HUD geometry is expensive and only useful while fighting or uncertain.
+        # Checks are rate limited; do not fabricate repeated observations.
+        hud_started = time.perf_counter()
+        check_hud = now - self._last_hud_check >= self._hud_interval_s and (
+            (visual or {}).get("name") in ("combate", "desconhecido")
+            or (visual is None and self.previous_state == "combate")
+        )
+        anchors = HUDAnchors()
+        if check_hud:
+            anchors = self._hud_regions(regions, screen_size)
+            self._last_hud_check = now
+        self._last_hud_elapsed_ms = (time.perf_counter() - hud_started) * 1000
         state = self.hud.update(
             anchors,
             now,
@@ -224,10 +264,8 @@ class RecognitionV1:
         detections = []
         if state["name"] == "combate":
             for region in regions:
-                # Evitar transformar os próprios botões do HUD em barras.
-                if not full and region.name.startswith("hud_"):
-                    continue
-                detections.extend(self._detect_bars(region, screen_size))
+                for sample in self._bar_search_images(region, full):
+                    detections.extend(self._detect_bars(sample, screen_size))
         detections = self._deduplicate(detections)
         tracks = self.memory.update(
             detections, [r.rect for r in regions], now, screen_size
@@ -242,12 +280,26 @@ class RecognitionV1:
             "timestamp_s": now,
             "screen_resolution": list(screen_size),
             "capture_mode": "full" if full else "regional",
-            "regions": [{"name": r.name, "xywh": r.rect.xywh()} for r in regions],
+            "regions": [
+                {
+                    "name": r.name,
+                    "xywh": r.rect.xywh(),
+                    "captured_at_s": r.captured_at,
+                    "sources": [
+                        {"role": role, "xywh": rect.xywh()}
+                        for role, rect in r.source_regions
+                    ],
+                }
+                for r in regions
+            ],
             "state": state,
             "visual_state": visual,
             "tracks": tracks,
             "events": events,
             "candidates_in_frame": len(detections),
+            "confirmed_tracks": sum(t.get("confirmed", False) for t in tracks),
+            "hud_check_ms": round(self._last_hud_elapsed_ms, 3),
+            "hud_check_performed": check_hud,
             "limitations": [
                 "Barras e silhuetas são hipóteses heurísticas.",
                 "Não há leitura numérica exata de HP neste pipeline.",

@@ -53,14 +53,25 @@ class DatasetStore:
         if self.error:
             raise RuntimeError(self.error)
         now = result["timestamp_s"]
-        critical = bool(result.get("events"))
+        critical_events = {
+            "confirmed",
+            "lost",
+            "structural_change_persistent",
+            "reset",
+            "state_change",
+        }
+        critical = any(
+            event.get("event") in critical_events for event in result.get("events", [])
+        )
         sample = critical or (now - self._last_sample >= self.sample_interval_s)
         if sample:
             self._last_sample = now
         # Arrays capturados são próprios por quadro no backend; copiar para
         # impedir sobrescrita por fontes que reutilizem buffers no futuro.
         samples = (
-            [(r.name, r.rect.xywh(), r.image.copy()) for r in regions] if sample else []
+            [(r.name, r.rect.xywh(), r.image.copy(), r.captured_at) for r in regions]
+            if sample
+            else []
         )
         try:
             self.queue.put_nowait((dict(result), samples))
@@ -110,7 +121,7 @@ class DatasetStore:
                     events.write(encoded_observation)
                     self.bytes_saved += observation_cost
                     self.records += 1
-                    for index, (name, coords, frame) in enumerate(samples):
+                    for index, (name, coords, frame, captured_at) in enumerate(samples):
                         if self.written >= self.max_images:
                             break
                         if self.records % 16 == 0 and (
@@ -133,6 +144,7 @@ class DatasetStore:
                         entry = {
                             "frame_id": result["frame_id"],
                             "timestamp_s": result["timestamp_s"],
+                            "captured_at_s": captured_at,
                             "image": filename,
                             "sha256": sha256,
                             "width": frame.shape[1],

@@ -16,6 +16,15 @@ def percentile95(values):
     return ordered[min(len(ordered) - 1, max(0, (95 * len(ordered) + 99) // 100 - 1))]
 
 
+def stage_stats(entries, key):
+    values = [float(e[key]) for e in entries if key in e]
+    return {
+        "samples": len(values),
+        "mean_ms": round(statistics.mean(values), 3) if values else None,
+        "p95_ms": round(percentile95(values), 3) if values else None,
+    }
+
+
 def benchmark(folder: Path):
     folder = folder.resolve()
     entries = [
@@ -35,6 +44,9 @@ def benchmark(folder: Path):
     events = Counter(
         item.get("event", "unknown") for e in entries for item in e.get("events", [])
     )
+    reasons = Counter(e.get("capture_reason", "unknown") for e in entries)
+    suppressed = sum(int(e.get("roi_suppressed_targets", 0)) for e in entries)
+    hud_scans = sum(bool(e.get("hud_check_performed", False)) for e in entries)
     result = {
         "cycles": len(entries),
         "duration_s": round(duration, 3),
@@ -49,6 +61,23 @@ def benchmark(folder: Path):
             round(1 - acquired / possible, 4) if possible else None
         ),
         "events": dict(events),
+        "capture_reasons": dict(reasons),
+        "suppressed_roi_targets": suppressed,
+        "hud_checks": hud_scans,
+        "stages": {
+            key: stage_stats(entries, key)
+            for key in (
+                "capture_ms",
+                "analysis_ms",
+                "hud_check_ms",
+                "dataset_enqueue_ms_previous_cycle",
+                "processing_ms",
+            )
+        },
+        "dataset_queue_max": max(
+            (int(e.get("dataset_queue_depth", 0)) for e in entries),
+            default=0,
+        ),
         "warning": (
             "Economia de pixels não é economia de CPU nem acurácia. "
             "O tempo inclui aquisição e análise, diferentemente da V1.4."
