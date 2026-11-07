@@ -263,9 +263,8 @@ class MatchRoster:
                         if obj.get("kind") == kind
                         and isinstance(obj.get("track_id"), int)
                         and obj.get("track_id") not in self.bindings
-                        and obj.get("track_hits", 0) >= (
-                            5 if kind == "personagem_possivel" else 1
-                        )
+                        and obj.get("track_hits", 0)
+                        >= (5 if kind == "personagem_possivel" else 1)
                     ),
                     key=lambda obj: -obj.get("track_hits", 0),
                 )
