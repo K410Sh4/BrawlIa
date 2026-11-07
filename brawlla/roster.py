@@ -3,6 +3,7 @@
 OCR só recebe pequenos recortes em thread daemon, nunca bloqueia a
 análise. Nomes pouco confiáveis não geram vínculos automáticos.
 """
+
 from collections import Counter, defaultdict
 from difflib import SequenceMatcher
 from queue import Empty, Full, Queue
@@ -129,6 +130,7 @@ class MatchRoster:
                     self.engine = self.ocr_factory()
                 else:
                     from rapidocr import RapidOCR
+
                     self.engine = RapidOCR()
             while True:
                 try:
@@ -261,13 +263,13 @@ class MatchRoster:
         for obj in objects:
             pid = self.bindings.get(obj.get("track_id"))
             obj["participant_id"] = pid
-            obj["participant_identity_status"] = (
-                "matched_ocr" if pid else "unresolved"
-            )
+            obj["participant_identity_status"] = "matched_ocr" if pid else "unresolved"
             if pid and obj.get("kind") == "jogador_candidato":
                 self.local_id = pid
         self.active_track_ids = {
-            obj.get("track_id") for obj in objects if isinstance(obj.get("track_id"), int)
+            obj.get("track_id")
+            for obj in objects
+            if isinstance(obj.get("track_id"), int)
         }
         for item in self.participants:
             item["is_local"] = item["participant_id"] == self.local_id

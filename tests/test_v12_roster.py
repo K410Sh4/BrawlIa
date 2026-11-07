@@ -16,8 +16,13 @@ def lineup():
     for i, (x1, y1, x2, y2) in enumerate(name_regions(frame)):
         cv2.rectangle(frame, (x1, y1), (x2, y2), (22, 22, 22), -1)
         cv2.putText(
-            frame, f"NICK{i+1}", (x1 + 7, y1 + 22),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.46, (240, 240, 240), 1,
+            frame,
+            f"NICK{i+1}",
+            (x1 + 7, y1 + 22),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.46,
+            (240, 240, 240),
+            1,
         )
     return frame
 
@@ -69,8 +74,10 @@ class RosterTests(unittest.TestCase):
         self.assertEqual(roster.bindings, {})
         roster._match_track(42, "SkyZynoxCrow", 0.98)
         self.assertEqual(roster.bindings, {42: "P01"})
-        objs = [{"track_id":42,"kind":"jogador_candidato"}]
-        result = roster.observe(np.zeros((720,1280,3),dtype=np.uint8), "combate", 1, objs)
+        objs = [{"track_id": 42, "kind": "jogador_candidato"}]
+        result = roster.observe(
+            np.zeros((720, 1280, 3), dtype=np.uint8), "combate", 1, objs
+        )
         self.assertEqual(result["local_participant_id"], "P01")
         self.assertEqual(objs[0]["participant_id"], "P01")
         json.dumps(result)
@@ -86,14 +93,14 @@ class RosterTests(unittest.TestCase):
     def test_dormant_old_track_can_be_rebound(self):
         roster = MatchRoster(RosterConfig())
         roster.participants[0].update(name="SkyZynoxCrow", status="confirmed")
-        roster.bindings = {1:"P01"}
+        roster.bindings = {1: "P01"}
         roster.active_track_ids = {1}
         for _ in range(2):
             roster._match_track(99, "SkyZynoxCrow", 0.96)
         self.assertEqual(roster.bindings, {1:"P01"})
         roster.active_track_ids = set()
         roster._match_track(99, "SkyZynoxCrow", 0.96)
-        self.assertEqual(roster.bindings, {99:"P01"})
+        self.assertEqual(roster.bindings, {99: "P01"})
 
     def test_second_match_does_not_inherit_roster(self):
         roster = MatchRoster(RosterConfig())
@@ -109,6 +116,7 @@ class RosterTests(unittest.TestCase):
 
     def test_ocr_response_contract(self):
         from brawlla.roster import read_name
+
         fake = lambda _: SimpleNamespace(txts=("Nick1",), scores=(0.99,))
         answer = read_name(fake, np.zeros((20, 80, 3), np.uint8))
         self.assertEqual(answer, ("Nick1", 0.99))

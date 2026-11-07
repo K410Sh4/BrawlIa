@@ -250,7 +250,12 @@ def load_config(path: Path | None = None) -> AnalyzerConfig:
     if path is None or not Path(path).exists():
         return AnalyzerConfig()
     raw = json.loads(Path(path).read_text(encoding="utf-8-sig"))
-    if not isinstance(raw, dict) or set(raw) - {"state", "tracking", "vision", "roster"}:
+    if not isinstance(raw, dict) or set(raw) - {
+        "state",
+        "tracking",
+        "vision",
+        "roster",
+    }:
         raise ValueError("Seções de configuração inválidas")
     raw = migrate_config(raw)
     try:
