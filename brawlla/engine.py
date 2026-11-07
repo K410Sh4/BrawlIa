@@ -11,6 +11,7 @@ from .motion import MotionEvidence
 from .objects import ObjectClassifier
 from .tracking import TargetTracker
 from .vision import detect
+from .terrain import TerrainObserver
 from .rendering import render_analysis
 from .diagnostics import target_status
 
@@ -34,6 +35,7 @@ class SessionAnalyzer:
         self.objects = ObjectClassifier(self.config.vision)
         self.tracker = TargetTracker(config=self.config.tracking)
         self.roster = MatchRoster(self.config.roster)
+        self.terrain = TerrainObserver(self.config.vision)
         self.previous_state = "desconhecido"
         self.previous_resolution = None
 
@@ -54,6 +56,7 @@ class SessionAnalyzer:
         timings = {"state": (time.perf_counter() - started) * 1000}
         if self.previous_resolution not in (None, (w, h)):
             self.tracker.reset("resolucao_alterada", now)
+            self.terrain.reset()
             self.player.reset()
             self.motion.reset()
         self.previous_resolution = (w, h)
@@ -63,6 +66,7 @@ class SessionAnalyzer:
             "resultados",
         ):
             self.tracker.reset(state["name"] + "_confirmado", now)
+            self.terrain.reset()
             self.player.reset()
             self.motion.reset()
         self.previous_state = state["name"]
@@ -76,8 +80,16 @@ class SessionAnalyzer:
         timings["camera_motion"] = (time.perf_counter() - camera_start) * 1000
         if state["name"] == "combate":
             stage = time.perf_counter()
-            data, scene = detect(frame_bgr, self.player, now, self.config.vision)
+            data, scene = detect(
+                frame_bgr,
+                self.player,
+                now,
+                self.config.vision,
+                terrain_observer=self.terrain,
+                camera_motion=camera,
+            )
             timings["colors"] = (time.perf_counter() - stage) * 1000
+            timings.update(data["vision_stage_timings_ms"])
             stage = time.perf_counter()
             objects = [
                 {**item, **self.objects.classify(frame_bgr, item)}
