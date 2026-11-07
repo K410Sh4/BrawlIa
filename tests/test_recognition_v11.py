@@ -115,5 +115,52 @@ class SceneChangeTests(unittest.TestCase):
         ))
 
 
+class GlobalAssociationTests(unittest.TestCase):
+    def test_global_optimum_outperforms_greedy_confidence(self):
+        from brawlla.recognition_v1.association import optimal_associations
+
+        # Linha 0 disputa track 0 com linha 1; o ótimo respeita ambas.
+        scores = [[0.91, 0.88], [0.85, 0.05]]
+        self.assertEqual(optimal_associations(scores), [(0, 1), (1, 0)])
+
+    def test_unmatched_observations_cannot_force_false_identity(self):
+        from brawlla.recognition_v1.association import optimal_associations
+        self.assertEqual(
+            optimal_associations([
+                [float("-inf"), 0.03], [0.75, float("-inf")],
+            ]), [(1, 0)]
+        )
+
+
+class DatasetCuratorTests(unittest.TestCase):
+    def test_duplicates_are_suppressed_but_events_stay(self):
+        from brawlla.recognition_v1.dataset_curator import DatasetCurator
+
+        curator = DatasetCurator(interval_s=0.5)
+        raw = np.zeros((32, 64, 3), dtype=np.uint8)
+        result = {"timestamp_s": 1.0, "state": {"name": "combate"}, "events": []}
+        self.assertEqual(curator.select_samples(result), (True, "periodic"))
+        key = ("scene", (0, 0, 64, 32), (640, 360), "combate")
+        self.assertFalse(curator.detect_duplicate_samples(raw, key))
+        self.assertTrue(curator.detect_duplicate_samples(raw, key))
+        self.assertFalse(curator.detect_duplicate_samples(raw, key, force=True))
+        event = {"timestamp_s": 1.1, "events": [
+            {"event": "state_change"}], "state": {"name": "resultados"}}
+        self.assertEqual(curator.select_samples(event), (True, "critical_event"))
+
+    def test_unverified_predictions_are_not_training_labels(self):
+        from brawlla.recognition_v1.dataset_curator import DatasetCurator
+
+        self.assertTrue(DatasetCurator.validate_annotations({
+            "label_status": "unreviewed",
+            "prediction": [{"track_id": 1}],
+        }))
+        self.assertFalse(DatasetCurator.validate_annotations({
+            "label_status": "accepted",
+            "prediction": [{"track_id": 1}],
+        }))
+
+
+
 if __name__ == "__main__":
     unittest.main()
