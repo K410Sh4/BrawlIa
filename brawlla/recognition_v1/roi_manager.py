@@ -84,7 +84,14 @@ class ROIManager:
                         again = True
                         break
             deduped = tuple(dict.fromkeys(sources))
-            name = deduped[0][0] if len(deduped) == 1 else "merged"
+            name = (
+                deduped[0][0]
+                if len(deduped) == 1
+                else next(
+                    (role for role, _ in deduped if role.startswith("target_")),
+                    "merged",
+                )
+            )
             merged.append(
                 CaptureRegion(
                     name,
