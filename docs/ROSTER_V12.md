@@ -25,9 +25,10 @@
   ou incorreto; as correspondências só são feitas quando há evidência
   suficiente e singular.
 - **Não atribuímos todos os jogadores observados a um Pxx automaticamente.**
-  A V1.2 associa o jogador local quando o texto na barra é verificável.
-  Outros personagens permanecem `unresolved` até existir leitura robusta
-  e validada de nomes inimigos.
+  A V1.2 também amostra, no máximo a cada 2,5 s, o espaço acima de barras
+  de personagens não locais com pelo menos cinco observações. Só identifica
+  quando o OCR coincide, de modo único e repetido, com um nome confirmado
+  na apresentação; caso contrário, permanece `unresolved`.
 - Personagens e nomes não são equivalentes: podem existir brawlers iguais.
   A ordem do cartão não é usada como prova de qual jogador é o usuário.
 - A inferência OCR ainda é realizada em CPU. O worker pode competir com

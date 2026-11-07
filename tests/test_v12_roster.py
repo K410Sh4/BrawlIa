@@ -114,6 +114,32 @@ class RosterTests(unittest.TestCase):
         self.assertIsNone(result["local_participant_id"])
         self.assertFalse(roster.bindings)
 
+    def test_nonlocal_name_is_sampled_only_from_stable_track(self):
+        roster = MatchRoster(RosterConfig())
+        roster.detected = True
+        roster.participants[0].update(name="Nick1", status="confirmed")
+        submitted = []
+        roster._send = lambda kind, payload: submitted.append((kind, payload)) or True
+        frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+        unstable = {
+            "track_id": 71,
+            "kind": "personagem_possivel",
+            "track_hits": 2,
+            "x": 500,
+            "y": 300,
+            "width": 65,
+        }
+        roster.observe(frame, "combate", 0, [unstable])
+        self.assertEqual(submitted, [])
+        stable = {**unstable, "track_hits": 8}
+        roster.observe(frame, "combate", 1.0, [stable])
+        self.assertEqual(len(submitted), 1)
+        self.assertEqual(submitted[0][0], "combat")
+        self.assertEqual(submitted[0][1][0], 71)
+        self.assertIsNone(stable["participant_id"])
+        roster.observe(frame, "combate", 2.0, [stable])
+        self.assertEqual(len(submitted), 1)
+
     def test_ocr_response_contract(self):
         from brawlla.roster import read_name
 

@@ -77,6 +77,8 @@ confirmando nomes repetidos. Nomes truncados, incertos ou duplicados não
 identificam automaticamente o jogador. O OCR durante combate é acionado
 somente em recortes de nome do jogador com intervalo de 2,5 segundos, e
 só associa `participant_id` após correspondência única e repetida.
+Também há coleta limitada de nomes sobre barras de outros personagens
+com trilhas estáveis, alternando as amostras para evitar consumo excessivo.
 
 O campo `match_roster` nos registros inclui os 10 slots, status e
 `local_participant_id`. Um `track_id` pode mudar sem alterar o
