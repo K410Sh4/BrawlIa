@@ -12,6 +12,7 @@ from .samples import SampleRecorder
 from .observations import ObservationRecorder
 from .provenance import provenance_snapshot
 from .recording import AnalysisRecorder
+from .self_review import SelfReview
 from .reporting import save_report
 from .storage import (
     user_data_directory,
@@ -43,6 +44,7 @@ class SessionController:
         self._initial_error = None
         self._next_audit = 0
         self._notified_error = None
+        self.self_review = None
 
     @property
     def active(self):
@@ -93,6 +95,7 @@ class SessionController:
             "session_folder": str(self.folder),
             "video_requested": self.options.record_video,
             "samples_requested": self.options.record_samples,
+            "self_review": self.self_review.snapshot() if self.self_review else None,
             "video": video.snapshot() if video else None,
             "samples": samples.snapshot() if samples else None,
             "pipeline": pipe.snapshot() if pipe else None,
@@ -115,6 +118,8 @@ class SessionController:
             self.notify("recording_error", self.recording_snapshot())
 
     def _on_result(self, image, data):
+        if self.self_review is not None:
+            self.self_review.observe(data)
         self.observations.submit(data)
         if self.video:
             self.video.submit(image, data)
@@ -149,6 +154,7 @@ class SessionController:
             self.provenance = provenance_snapshot(self.analyzer_config)
             self.started_utc = utc_now()
             self.last_summary = None
+            self.self_review = SelfReview()
             self.folder = None
             self._initial_error = self.recording_error = self._notified_error = None
             self._next_audit = 0
@@ -233,6 +239,8 @@ class SessionController:
     def _enrich_recording_reports(self, video, sampler):
         if self.folder is None:
             return
+        if self.self_review is not None:
+            write_json(self.folder / "autoavaliacao.json", self.self_review.snapshot())
         recording = {
             "video_enabled": self.options.record_video,
             "samples_enabled": self.options.record_samples,
@@ -277,6 +285,7 @@ class SessionController:
                 video_events_processed=video.records if video else 0,
                 analyzer_config=asdict(self.analyzer_config),
                 provenance=self.provenance,
+                self_review=self.self_review.snapshot() if self.self_review else None,
             )
             write_json(summary_path, summary)
         report_path = self.folder / "relatorio.json"
