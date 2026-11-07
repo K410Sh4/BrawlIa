@@ -127,7 +127,8 @@ class ROIManager:
             return float("-inf")
         if not track.get("confirmed", track.get("hits", 2) >= 2):
             return float("-inf")
-        confidence = float(track.get("confidence", 0))
+        # Older tracker payloads omit confidence; preserve compatible tracking.
+        confidence = float(track.get("confidence", 0.55))
         if confidence < 0.48:
             return float("-inf")
         age = max(0, now - float(track.get("last_seen", now)))
