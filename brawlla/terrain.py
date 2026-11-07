@@ -42,9 +42,7 @@ class TerrainObserver:
         affine = np.array([[sx, 0, 0], [0, sy, 0]], dtype=np.float32)
         result = []
         for kind in ("bush", "wall"):
-            contours, _ = _terrain(
-                small, kind, self.config, include_contours=True
-            )
+            contours, _ = _terrain(small, kind, self.config, include_contours=True)
             scaled = [
                 np.rint(cv2.transform(c.astype(np.float32), affine)).astype(np.int32)
                 for c in contours
@@ -56,9 +54,7 @@ class TerrainObserver:
     def _camera_affine(camera_motion):
         if not isinstance(camera_motion, dict) or not camera_motion.get("valid"):
             return None
-        matrix = np.asarray(
-            camera_motion.get("affine_original", []), dtype=np.float32
-        )
+        matrix = np.asarray(camera_motion.get("affine_original", []), dtype=np.float32)
         if matrix.shape != (2, 3) or not np.isfinite(matrix).all():
             return None
         return matrix
@@ -69,9 +65,7 @@ class TerrainObserver:
         if size != self.resolution or self.last_refresh_at is None:
             self.reset()
             self.resolution = size
-        age = (
-            now - self.last_refresh_at if self.last_refresh_at is not None else 0
-        )
+        age = now - self.last_refresh_at if self.last_refresh_at is not None else 0
         refresh = (
             self.scene is None
             or age < 0
@@ -112,13 +106,15 @@ class TerrainObserver:
             ]
             for kind, contours in self.scene
         }
-        return regions, self.scene, {
-            "refreshed": refresh,
-            "cache_age_ms": round(
-                max(0, (now - self.last_refresh_at) * 1000), 2
-            ),
-            "motion_compensated": applied_motion,
-            "approximate": not refresh,
-            "refreshes": self.refreshes,
-            "reuses": self.reuses,
-        }
+        return (
+            regions,
+            self.scene,
+            {
+                "refreshed": refresh,
+                "cache_age_ms": round(max(0, (now - self.last_refresh_at) * 1000), 2),
+                "motion_compensated": applied_motion,
+                "approximate": not refresh,
+                "refreshes": self.refreshes,
+                "reuses": self.reuses,
+            },
+        )

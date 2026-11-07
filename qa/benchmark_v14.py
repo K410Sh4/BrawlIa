@@ -54,7 +54,9 @@ def evaluate(video, limit=150):
                     frame, player, elapsed, config, terrain_observer=terrain
                 )
                 timings.append((time.perf_counter() - started) * 1000)
-                terrain_ms.append(observation["vision_stage_timings_ms"]["vision_terrain"])
+                terrain_ms.append(
+                    observation["vision_stage_timings_ms"]["vision_terrain"]
+                )
                 detected += observation["player_health_bar_candidate"] is not None
                 reviewed += 1
                 elapsed += 1.0 / fps

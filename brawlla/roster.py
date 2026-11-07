@@ -100,8 +100,14 @@ class MatchRoster:
         self.ocr_batches = 0
         self.ocr_combat_reads = 0
         self.ocr_slots = [
-            {"attempts": 0, "empty": 0, "low_confidence": 0, "accepted": 0,
-             "last_confidence": None} for _ in range(10)
+            {
+                "attempts": 0,
+                "empty": 0,
+                "low_confidence": 0,
+                "accepted": 0,
+                "last_confidence": None,
+            }
+            for _ in range(10)
         ]
         self.local_id = None
         self.bindings = {}
@@ -157,7 +163,9 @@ class MatchRoster:
                         answer = (track_id, *read_name(self.engine, crop))
                     self.completed.put(
                         (
-                            generation, kind, answer,
+                            generation,
+                            kind,
+                            answer,
                             round((time.perf_counter() - started) * 1000, 2),
                         )
                     )
@@ -258,10 +266,10 @@ class MatchRoster:
         if state == "combate":
             self.had_combat = True
         elif (
-            (not self.detected or self.attempts < self.config.roster_frames
-             or self.had_combat)
-            and timestamp - self.last_roster_probe >= 0.15
-        ):
+            not self.detected
+            or self.attempts < self.config.roster_frames
+            or self.had_combat
+        ) and timestamp - self.last_roster_probe >= 0.15:
             self.last_roster_probe = timestamp
             if roster_visible(frame):
                 if self.had_combat:
@@ -369,11 +377,13 @@ class MatchRoster:
                 "finished_roster_batches": self.ocr_batches,
                 "finished_combat_reads": self.ocr_combat_reads,
                 "recent_batch_ms": list(self.ocr_duration_ms),
-                "per_slot": [entry.copy() for entry in self.ocr_slots]
-                if self.detected else [],
+                "per_slot": (
+                    [entry.copy() for entry in self.ocr_slots] if self.detected else []
+                ),
                 "warning": (
                     "OCR terminou sem nomes utilizáveis; revisar recortes e engine"
-                    if self.ocr_batches and not any(self.votes) else None
+                    if self.ocr_batches and not any(self.votes)
+                    else None
                 ),
             },
             "participants": (
