@@ -1,4 +1,5 @@
 """Regressões determinísticas da nova aquisição regional e memória visual."""
+
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import json
@@ -64,8 +65,7 @@ class HUDTests(unittest.TestCase):
 class MemoryTests(unittest.TestCase):
     def test_not_observed_is_not_occluded(self):
         memory = ContextMemory(max_absence_s=1.5)
-        det = Detection(Rect(200, 100, 70, 7), "barra_vida_candidata",
-                        "verde", 0.7)
+        det = Detection(Rect(200, 100, 70, 7), "barra_vida_candidata", "verde", 0.7)
         tracks = memory.update([det], [Rect(0, 0, 640, 360)], 0.0, (640, 360))
         track_id = tracks[0]["track_id"]
         tracks = memory.update([], [Rect(0, 250, 100, 100)], 0.2, (640, 360))
@@ -76,10 +76,8 @@ class MemoryTests(unittest.TestCase):
 
     def test_health_change_preserves_identity(self):
         memory = ContextMemory()
-        first = Detection(Rect(200, 100, 70, 8), "barra_vida_candidata",
-                          "verde", 0.70)
-        second = Detection(Rect(202, 100, 55, 8), "barra_vida_candidata",
-                           "verde", 0.80)
+        first = Detection(Rect(200, 100, 70, 8), "barra_vida_candidata", "verde", 0.70)
+        second = Detection(Rect(202, 100, 55, 8), "barra_vida_candidata", "verde", 0.80)
         a = memory.update([first], [Rect(0, 0, 640, 360)], 1.0, (640, 360))
         b = memory.update([second], [Rect(0, 0, 640, 360)], 1.1, (640, 360))
         self.assertEqual(a[0]["track_id"], b[0]["track_id"])
@@ -92,8 +90,10 @@ class ROIPlanTests(unittest.TestCase):
         self.assertTrue(policy.plan(0, (1280, 720), "combate", []).full)
         policy.note_full(0.0)
         track = {
-            "track_id": 3, "status": "observado",
-            "xywh": [600, 260, 70, 8], "last_seen": 0.0,
+            "track_id": 3,
+            "status": "observado",
+            "xywh": [600, 260, 70, 8],
+            "last_seen": 0.0,
             "velocity": [100, 0],
         }
         plan = policy.plan(0.2, (1280, 720), "combate", [track])
@@ -102,8 +102,9 @@ class ROIPlanTests(unittest.TestCase):
         self.assertTrue(any("target" in r.name for r in plan.regions))
         self.assertTrue(policy.plan(1.1, (1280, 720), "combate", [track]).full)
         policy.request_full_scan("camera_perdida")
-        self.assertEqual(policy.plan(0.4, (1280, 720), "combate", [track]).reason,
-                         "camera_perdida")
+        self.assertEqual(
+            policy.plan(0.4, (1280, 720), "combate", [track]).reason, "camera_perdida"
+        )
 
 
 class DetectorTests(unittest.TestCase):
@@ -113,17 +114,22 @@ class DetectorTests(unittest.TestCase):
         detector = RecognitionV1(state_detector=FakeCombat())
         first = detector.observe(
             [RegionImage("full", Rect(0, 0, 640, 360), full)],
-            (640, 360), now=1.0, full=True,
+            (640, 360),
+            now=1.0,
+            full=True,
         )
         self.assertTrue(first["tracks"])
         cropped = full[80:160, 180:300].copy()
         second = detector.observe(
             [RegionImage("target_1", Rect(180, 80, 120, 80), cropped)],
-            (640, 360), now=1.1, full=False,
+            (640, 360),
+            now=1.1,
+            full=False,
         )
         self.assertTrue(second["tracks"])
-        self.assertEqual(first["tracks"][0]["track_id"],
-                         second["tracks"][0]["track_id"])
+        self.assertEqual(
+            first["tracks"][0]["track_id"], second["tracks"][0]["track_id"]
+        )
         self.assertGreaterEqual(second["tracks"][0]["xywh"][0], 190)
 
 
@@ -135,14 +141,16 @@ class DatasetTests(unittest.TestCase):
             recorder.start()
             image = np.zeros((40, 80, 3), np.uint8)
             result = {
-                "frame_id": 1, "timestamp_s": 1.0,
+                "frame_id": 1,
+                "timestamp_s": 1.0,
                 "screen_resolution": [640, 360],
                 "capture_mode": "regional",
-                "tracks": [], "events": [],
+                "tracks": [],
+                "events": [],
             }
-            recorder.submit(result, [
-                RegionImage("target", Rect(100, 100, 80, 40), image)
-            ])
+            recorder.submit(
+                result, [RegionImage("target", Rect(100, 100, 80, 40), image)]
+            )
             recorder.stop()
             recorder.join(5)
             self.assertIsNone(recorder.error)

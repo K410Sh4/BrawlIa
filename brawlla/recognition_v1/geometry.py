@@ -1,4 +1,5 @@
 """Coordenadas inteiras sempre relativas à imagem INTEIRA da janela."""
+
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
@@ -42,12 +43,16 @@ class Rect:
         if not 0 <= fraction <= 4:
             raise ValueError("Margem inválida")
         mx, my = round(self.w * fraction), round(self.h * fraction)
-        return Rect(self.x - mx, self.y - my,
-                    self.w + 2 * mx, self.h + 2 * my).clipped(size)
+        return Rect(self.x - mx, self.y - my, self.w + 2 * mx, self.h + 2 * my).clipped(
+            size
+        )
 
-    def translated(self, dx: float, dy: float, size: tuple[int, int]) -> Optional["Rect"]:
-        return Rect(round(self.x + dx), round(self.y + dy),
-                    self.w, self.h).clipped(size)
+    def translated(
+        self, dx: float, dy: float, size: tuple[int, int]
+    ) -> Optional["Rect"]:
+        return Rect(round(self.x + dx), round(self.y + dy), self.w, self.h).clipped(
+            size
+        )
 
     def intersection_area(self, other: "Rect") -> int:
         w = max(0, min(self.x + self.w, other.x + other.w) - max(self.x, other.x))
@@ -74,5 +79,9 @@ class CaptureRegion:
     priority: int = 1
 
     def to_dict(self) -> dict:
-        return {"name": self.name, "xywh": self.rect.xywh(),
-                "reason": self.reason, "priority": self.priority}
+        return {
+            "name": self.name,
+            "xywh": self.rect.xywh(),
+            "reason": self.reason,
+            "priority": self.priority,
+        }

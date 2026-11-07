@@ -1,4 +1,5 @@
 """Identidade temporal: observado != não observado != ocluído != perdido."""
+
 from __future__ import annotations
 from dataclasses import dataclass, field
 import math
@@ -33,12 +34,15 @@ class Track:
 
     def to_dict(self) -> dict:
         return {
-            "track_id": self.track_id, "xywh": self.bbox.xywh(),
-            "kind": self.kind, "color": self.color,
+            "track_id": self.track_id,
+            "xywh": self.bbox.xywh(),
+            "kind": self.kind,
+            "color": self.color,
             "confidence": round(self.confidence, 3),
             "last_seen": round(self.last_seen, 4),
             "velocity": [round(v, 2) for v in self.velocity],
-            "status": self.status, "misses": self.misses,
+            "status": self.status,
+            "misses": self.misses,
             "fill_fraction": self.fill_fraction,
             "health_exact": None,
         }
@@ -56,8 +60,13 @@ class ContextMemory:
         self.events.append({"event": "reset", "reason": reason})
         self.tracks.clear()
 
-    def update(self, detections: list[Detection], observed: list[Rect],
-               now: float, screen_size: tuple[int, int]) -> list[dict]:
+    def update(
+        self,
+        detections: list[Detection],
+        observed: list[Rect],
+        now: float,
+        screen_size: tuple[int, int],
+    ) -> list[dict]:
         """Associa detecções com movimento/silhueta, sem inventar evidências."""
         claimed: set[int] = set()
         for det in sorted(detections, key=lambda x: x.confidence, reverse=True):
@@ -67,7 +76,9 @@ class ContextMemory:
                     continue
                 dt = max(0.001, now - track.last_seen)
                 cx, cy = track.bbox.center
-                predicted = cx + track.velocity[0] * min(dt, 0.4), cy + track.velocity[1] * min(dt, 0.4)
+                predicted = cx + track.velocity[0] * min(dt, 0.4), cy + track.velocity[
+                    1
+                ] * min(dt, 0.4)
                 dx = det.bbox.center[0] - predicted[0]
                 dy = det.bbox.center[1] - predicted[1]
                 distance = math.hypot(dx, dy)

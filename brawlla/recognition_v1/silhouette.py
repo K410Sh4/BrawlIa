@@ -1,4 +1,5 @@
 """Assinatura estrutural heurística, NÃO reconhecimento treinado de brawlers."""
+
 from __future__ import annotations
 from dataclasses import dataclass
 import cv2
@@ -18,7 +19,7 @@ def extract_silhouette(frame: np.ndarray) -> Signature | None:
     h, w = frame.shape[:2]
     if h < 20 or w < 16:
         return None
-    body = frame[max(1, round(h * 0.24)):, :]
+    body = frame[max(1, round(h * 0.24)) :, :]
     small = cv2.resize(body, (48, 48), interpolation=cv2.INTER_AREA)
     gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 45, 115)
@@ -29,7 +30,9 @@ def extract_silhouette(frame: np.ndarray) -> Signature | None:
     return Signature(edges, histogram)
 
 
-def compare_silhouettes(previous: Signature | None, current: Signature | None) -> float | None:
+def compare_silhouettes(
+    previous: Signature | None, current: Signature | None
+) -> float | None:
     """Similaridade 0..1; indício auxiliar, nunca identidade confirmada."""
     if previous is None or current is None:
         return None
@@ -42,8 +45,12 @@ def compare_silhouettes(previous: Signature | None, current: Signature | None) -
     return float(np.clip(0.65 * shape + 0.35 * max(0.0, color), 0.0, 1.0))
 
 
-def structural_change_ratio(previous: np.ndarray, current: np.ndarray,
-                            stable_mask: np.ndarray, threshold: int = 25) -> float | None:
+def structural_change_ratio(
+    previous: np.ndarray,
+    current: np.ndarray,
+    stable_mask: np.ndarray,
+    threshold: int = 25,
+) -> float | None:
     """Muda somente os pixels relevantes; não compara números/HP se mascarados."""
     if previous.shape != current.shape or previous.ndim != 3:
         return None

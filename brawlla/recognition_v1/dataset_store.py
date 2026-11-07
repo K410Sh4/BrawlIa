@@ -2,6 +2,7 @@
 
 Amostras ainda não são rótulos verdadeiros. Escrita limitada, sem upload.
 """
+
 from __future__ import annotations
 import hashlib
 import json
@@ -14,9 +15,16 @@ from .recognizer import RegionImage
 
 
 class DatasetStore:
-    def __init__(self, folder, *, sample_interval_s=0.5,
-                 max_images=2000, max_bytes=512 * 1024**2,
-                 min_free_bytes=512 * 1024**2, queue_size=64):
+    def __init__(
+        self,
+        folder,
+        *,
+        sample_interval_s=0.5,
+        max_images=2000,
+        max_bytes=512 * 1024**2,
+        min_free_bytes=512 * 1024**2,
+        queue_size=64,
+    ):
         self.folder = Path(folder).resolve()
         self.sample_interval_s = sample_interval_s
         self.max_images = max_images
@@ -51,7 +59,9 @@ class DatasetStore:
             self._last_sample = now
         # Arrays capturados são próprios por quadro no backend; copiar para
         # impedir sobrescrita por fontes que reutilizem buffers no futuro.
-        samples = [(r.name, r.rect.xywh(), r.image.copy()) for r in regions] if sample else []
+        samples = (
+            [(r.name, r.rect.xywh(), r.image.copy()) for r in regions] if sample else []
+        )
         try:
             self.queue.put_nowait((dict(result), samples))
         except queue.Full:
@@ -69,9 +79,12 @@ class DatasetStore:
 
     def snapshot(self):
         return {
-            "folder": str(self.folder), "written": self.written,
-            "records": self.records, "bytes_saved": self.bytes_saved,
-            "dropped": self.dropped, "error": self.error,
+            "folder": str(self.folder),
+            "written": self.written,
+            "records": self.records,
+            "bytes_saved": self.bytes_saved,
+            "dropped": self.dropped,
+            "error": self.error,
         }
 
     def _run(self):
@@ -89,22 +102,20 @@ class DatasetStore:
                         result, samples = self.queue.get(timeout=0.1)
                     except queue.Empty:
                         continue
-                    encoded_observation = json.dumps(
-                        result, ensure_ascii=False
-                    ) + "\n"
+                    encoded_observation = json.dumps(result, ensure_ascii=False) + "\n"
                     events.write(encoded_observation)
                     self.records += 1
                     for index, (name, coords, frame) in enumerate(samples):
                         if self.written >= self.max_images:
                             break
                         if self.records % 16 == 0 and (
-                            shutil.disk_usage(self.folder).free <
-                            self.min_free_bytes
+                            shutil.disk_usage(self.folder).free < self.min_free_bytes
                         ):
                             self.error = "Pouco espaço livre, gravação encerrada"
                             break
                         success, png = cv2.imencode(
-                            ".png", frame,
+                            ".png",
+                            frame,
                             [cv2.IMWRITE_PNG_COMPRESSION, 1],
                         )
                         if not success:

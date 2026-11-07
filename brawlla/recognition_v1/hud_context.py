@@ -3,6 +3,7 @@
 Círculos não confirmam botões isoladamente: falsos positivos são esperados;
 o StateDetector existente confirma menus, combate e resultados no quadro completo.
 """
+
 from __future__ import annotations
 from dataclasses import dataclass
 import cv2
@@ -17,16 +18,20 @@ class HUDAnchors:
 
     @property
     def score(self) -> float:
-        return (0.45 if self.attack else 0.0) + (
-            0.35 if self.movement else 0.0) + (0.20 if self.gadget else 0.0)
+        return (
+            (0.45 if self.attack else 0.0)
+            + (0.35 if self.movement else 0.0)
+            + (0.20 if self.gadget else 0.0)
+        )
 
     @property
     def combat_candidate(self) -> bool:
         return self.attack and self.movement
 
 
-def detect_controls(frame: np.ndarray, origin: tuple[int, int],
-                    screen_size: tuple[int, int]) -> HUDAnchors:
+def detect_controls(
+    frame: np.ndarray, origin: tuple[int, int], screen_size: tuple[int, int]
+) -> HUDAnchors:
     """Procura candidatos circulares nas regiões inferiores da tela."""
     if frame is None or frame.ndim != 3 or frame.shape[2] != 3:
         return HUDAnchors()
@@ -41,9 +46,14 @@ def detect_controls(frame: np.ndarray, origin: tuple[int, int],
     min_r = max(8, round(sw * 0.012))
     max_r = max(min_r + 2, round(sw * 0.073))
     circles = cv2.HoughCircles(
-        gray, cv2.HOUGH_GRADIENT, dp=1.4,
+        gray,
+        cv2.HOUGH_GRADIENT,
+        dp=1.4,
         minDist=max(18, min_r * 2),
-        param1=100, param2=29, minRadius=min_r, maxRadius=max_r,
+        param1=100,
+        param2=29,
+        minRadius=min_r,
+        maxRadius=max_r,
     )
     if circles is None:
         return HUDAnchors()
@@ -61,15 +71,16 @@ def detect_controls(frame: np.ndarray, origin: tuple[int, int],
     attack = bool(right)
     # Acessório opcional: segundo círculo menor e distinto, não exigido para combate.
     gadget = any(
-        abs(a[0] - b[0]) > min_r * 2 and
-        min(a[2], b[2]) <= max(a[2], b[2]) * 0.80
-        for i, a in enumerate(right) for b in right[i + 1:]
+        abs(a[0] - b[0]) > min_r * 2 and min(a[2], b[2]) <= max(a[2], b[2]) * 0.80
+        for i, a in enumerate(right)
+        for b in right[i + 1 :]
     )
     return HUDAnchors(attack=attack, movement=left, gadget=gadget)
 
 
 class HUDContext:
     """Estado global não depende de uma barra ou de um único frame."""
+
     def __init__(self, grace_s: float = 2.5):
         self.grace_s = grace_s
         self.state = "desconhecido"
@@ -78,8 +89,13 @@ class HUDContext:
         self.anchor_streak = 0
         self.confidence = 0.0
 
-    def update(self, anchors: HUDAnchors, now: float,
-               visual_state: str | None = None, visual_confidence: float = 0.0) -> dict:
+    def update(
+        self,
+        anchors: HUDAnchors,
+        now: float,
+        visual_state: str | None = None,
+        visual_confidence: float = 0.0,
+    ) -> dict:
         if anchors.combat_candidate:
             self.anchor_streak += 1
         else:
@@ -100,8 +116,10 @@ class HUDContext:
             self.last_combat = now
             self.confidence = min(0.75, 0.45 + anchors.score * 0.30)
             reason = "ancoras_circulares_heuristicas"
-        elif self.state == "combate" and self.last_combat is not None and (
-            now - self.last_combat <= self.grace_s
+        elif (
+            self.state == "combate"
+            and self.last_combat is not None
+            and (now - self.last_combat <= self.grace_s)
         ):
             self.confidence = min(self.confidence, 0.49)
             reason = "hud_temporariamente_ausente"
@@ -112,12 +130,17 @@ class HUDContext:
         return {
             "name": self.state,
             "confidence": round(self.confidence, 3),
-            "uncertain": reason in (
+            "uncertain": reason
+            in (
                 "hud_temporariamente_ausente",
                 "ancoras_circulares_heuristicas",
                 "sem_evidencia_atual",
             ),
             "reason": reason,
-            "anchors": {"attack": anchors.attack, "movement": anchors.movement,
-                        "gadget": anchors.gadget, "score": anchors.score},
+            "anchors": {
+                "attack": anchors.attack,
+                "movement": anchors.movement,
+                "gadget": anchors.gadget,
+                "score": anchors.score,
+            },
         }

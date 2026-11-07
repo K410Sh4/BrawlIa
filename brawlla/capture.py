@@ -212,19 +212,26 @@ class WindowCapture:
         if rw <= 0 or rh <= 0 or rx < 0 or ry < 0 or rx + rw > ww or ry + rh > wh:
             raise ValueError("Região está fora do cliente do BlueStacks")
         bounds = self._mss.monitors[0]
-        if (wx < bounds["left"] or wy < bounds["top"] or
-                wx + ww > bounds["left"] + bounds["width"] or
-                wy + wh > bounds["top"] + bounds["height"]):
+        if (
+            wx < bounds["left"]
+            or wy < bounds["top"]
+            or wx + ww > bounds["left"] + bounds["width"]
+            or wy + wh > bounds["top"] + bounds["height"]
+        ):
             raise RuntimeError("Janela parcialmente fora da tela")
         self._last_rect = [wx, wy, ww, wh]
         if time.monotonic() >= self._next_visibility_check:
             self._next_visibility_check = time.monotonic() + 0.5
             self.quality_flags = _window_occlusion_flags(self.handle, self._last_rect)
         shot = np.asarray(
-            self._mss.grab({
-                "left": wx + rx, "top": wy + ry,
-                "width": rw, "height": rh,
-            })
+            self._mss.grab(
+                {
+                    "left": wx + rx,
+                    "top": wy + ry,
+                    "width": rw,
+                    "height": rh,
+                }
+            )
         )
         return cv2.cvtColor(shot, cv2.COLOR_BGRA2BGR)
 
