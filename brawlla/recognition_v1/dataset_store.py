@@ -12,6 +12,7 @@ import shutil
 import threading
 import cv2
 from .recognizer import RegionImage
+from .dataset_curator import DatasetCurator
 
 
 class DatasetStore:
@@ -36,7 +37,8 @@ class DatasetStore:
         self.bytes_saved = 0
         self.dropped = 0
         self.error = None
-        self._last_sample = float("-inf")
+        self.curator = DatasetCurator(interval_s=sample_interval_s)
+        self.selected = 0
         self._stop = threading.Event()
         self._thread = None
 
@@ -52,26 +54,15 @@ class DatasetStore:
             raise RuntimeError("DatasetStore não iniciado")
         if self.error:
             raise RuntimeError(self.error)
-        now = result["timestamp_s"]
-        critical_events = {
-            "confirmed",
-            "lost",
-            "structural_change_persistent",
-            "reset",
-            "state_change",
-        }
-        critical = any(
-            event.get("event") in critical_events for event in result.get("events", [])
-        )
-        sample = critical or (now - self._last_sample >= self.sample_interval_s)
+        sample, reason = self.curator.select_samples(result)
         if sample:
-            self._last_sample = now
-        # Arrays capturados são próprios por quadro no backend; copiar para
-        # impedir sobrescrita por fontes que reutilizem buffers no futuro.
+            self.selected += 1
         samples = (
-            [(r.name, r.rect.xywh(), r.image.copy(), r.captured_at) for r in regions]
-            if sample
-            else []
+            [
+                (r.name, r.rect.xywh(), r.image.copy(), r.captured_at, reason)
+                for r in regions
+            ]
+            if sample else []
         )
         try:
             self.queue.put_nowait((dict(result), samples))
@@ -95,6 +86,8 @@ class DatasetStore:
             "records": self.records,
             "bytes_saved": self.bytes_saved,
             "dropped": self.dropped,
+            "selected_cycles": self.selected,
+            "duplicates_skipped": self.curator.duplicates_skipped,
             "error": self.error,
         }
 
@@ -121,7 +114,7 @@ class DatasetStore:
                     events.write(encoded_observation)
                     self.bytes_saved += observation_cost
                     self.records += 1
-                    for index, (name, coords, frame, captured_at) in enumerate(samples):
+                    for index, (name, coords, frame, captured_at, reason) in enumerate(samples):
                         if self.written >= self.max_images:
                             break
                         if self.records % 16 == 0 and (
@@ -129,6 +122,15 @@ class DatasetStore:
                         ):
                             self.error = "Pouco espaço livre, gravação encerrada"
                             break
+                        duplicate_key = (
+                            name, tuple(coords),
+                            tuple(result["screen_resolution"]),
+                            result.get("state", {}).get("name"),
+                        )
+                        if self.curator.detect_duplicate_samples(
+                            frame, duplicate_key, force=reason == "critical_event"
+                        ):
+                            continue
                         success, png = cv2.imencode(
                             ".png",
                             frame,
@@ -153,6 +155,8 @@ class DatasetStore:
                             "roi_xywh": coords,
                             "source_name": name,
                             "capture_mode": result["capture_mode"],
+                            "sample_reason": reason,
+                            "recognition_version": result.get("recognition_version"),
                             "label_status": "unreviewed",
                             "ground_truth": False,
                             "prediction": result["tracks"],
