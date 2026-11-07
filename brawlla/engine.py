@@ -6,6 +6,7 @@ from .config import AnalyzerConfig
 from .domain import AnalysisResult, Timeline
 from .state import StateDetector
 from .player import PlayerLocator
+from .roster import MatchRoster
 from .motion import MotionEvidence
 from .objects import ObjectClassifier
 from .tracking import TargetTracker
@@ -32,6 +33,7 @@ class SessionAnalyzer:
         self.motion = MotionEvidence()
         self.objects = ObjectClassifier(self.config.vision)
         self.tracker = TargetTracker(config=self.config.tracking)
+        self.roster = MatchRoster(self.config.roster)
         self.previous_state = "desconhecido"
         self.previous_resolution = None
 
@@ -107,6 +109,11 @@ class SessionAnalyzer:
         timings["tracking"] = timings[
             "association"
         ]  # Compatibilidade, agora sem fluxo óptico incluído.
+        roster_start = time.perf_counter()
+        data["match_roster"] = self.roster.observe(
+            frame_bgr, state["name"], now, tracked
+        )
+        timings["roster_dispatch"] = (time.perf_counter() - roster_start) * 1000
         stage = time.perf_counter()
         if state["name"] == "combate" and self.config.vision.motion_enabled:
             self.motion.update(frame_bgr, tracked, now)

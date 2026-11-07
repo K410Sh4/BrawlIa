@@ -1,3 +1,14 @@
+# 1.2.0
+
+- Cadastro de participantes P01–P10 na apresentação antes do combate.
+- OCR assíncrono via RapidOCR opcional, duas leituras concordantes para
+  nomes confirmados; nomes ausentes permanecem pendentes.
+- Associação conservadora de nomes ao jogador local, separando
+  participant_id da trilha transitória track_id.
+- Campos match_roster, participant_id e status de identificação em JSONL.
+- Interface mostra quantidade de nomes confirmados e ID local quando verificado.
+- Sem automação de partidas; fallback de visão existente preservado.
+
 # 1.1.0
 
 - Novo botão "Abrir gravação" no painel, apontando para a sessão ativa,

@@ -6,7 +6,7 @@ import math
 import warnings
 from pathlib import Path
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 VERSION_SHORT = VERSION
 SCHEMA_VERSION = 2
 FPS_CHOICES = (5, 10, 15, 30, 60)
@@ -195,10 +195,36 @@ class VisionConfig:
 
 
 @dataclass(frozen=True)
+class RosterConfig:
+    """OCR somente na apresentação e em recortes selecionados."""
+
+    roster_frames: int = 3
+    roster_interval_s: float = 0.55
+    ocr_confidence: float = 0.60
+    roster_votes: int = 2
+    combat_interval_s: float = 2.5
+    match_threshold: float = 0.85
+    match_votes: int = 2
+
+    def __post_init__(self):
+        for name in ("roster_frames", "roster_votes", "match_votes"):
+            value = getattr(self, name)
+            if type(value) is not int or value < 1 or value > 10:
+                raise ValueError(f"{name}: inteiro de 1 a 10")
+        for name in ("roster_interval_s", "combat_interval_s"):
+            positive(getattr(self, name), name)
+        for name in ("ocr_confidence", "match_threshold"):
+            positive(getattr(self, name), name)
+            if getattr(self, name) > 1:
+                raise ValueError(f"{name}: intervalo de 0 a 1")
+
+
+@dataclass(frozen=True)
 class AnalyzerConfig:
     state: StateConfig = field(default_factory=StateConfig)
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
     vision: VisionConfig = field(default_factory=VisionConfig)
+    roster: RosterConfig = field(default_factory=RosterConfig)
 
 
 def migrate_config(raw):
@@ -224,7 +250,7 @@ def load_config(path: Path | None = None) -> AnalyzerConfig:
     if path is None or not Path(path).exists():
         return AnalyzerConfig()
     raw = json.loads(Path(path).read_text(encoding="utf-8-sig"))
-    if not isinstance(raw, dict) or set(raw) - {"state", "tracking", "vision"}:
+    if not isinstance(raw, dict) or set(raw) - {"state", "tracking", "vision", "roster"}:
         raise ValueError("Seções de configuração inválidas")
     raw = migrate_config(raw)
     try:
@@ -235,6 +261,7 @@ def load_config(path: Path | None = None) -> AnalyzerConfig:
                     ("state", StateConfig),
                     ("tracking", TrackingConfig),
                     ("vision", VisionConfig),
+                    ("roster", RosterConfig),
                 )
             }
         )
