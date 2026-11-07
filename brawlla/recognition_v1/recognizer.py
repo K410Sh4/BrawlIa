@@ -16,6 +16,7 @@ from .geometry import Rect
 from .context_engine import ContextMemory, Detection
 from .hud_context import HUDContext, HUDAnchors, detect_controls
 from .silhouette import extract_silhouette
+from .bar_validation import evaluate_bar_evidence
 
 
 @dataclass
@@ -25,6 +26,7 @@ class RegionImage:
     image: np.ndarray
     # Source roles survive merging, unlike a single name ("hud_right").
     sources: tuple[tuple[str, Rect], ...] = ()
+    captured_at: float | None = None
 
     @property
     def source_regions(self) -> tuple[tuple[str, Rect], ...]:
@@ -127,15 +129,7 @@ class RecognitionV1:
                 ):
                     continue
                 # Aparência de barra é apenas candidata; não infere HP exato.
-                margin = max(2, round(5 * scale))
-                x1, y1 = max(0, x - margin), max(0, y - margin)
-                x2 = min(image.shape[1], x + w + margin)
-                y2 = min(image.shape[0], y + h + margin)
-                sample = hsv[y1:y2, x1:x2]
-                if sample.size == 0:
-                    continue
-                darker = float(np.mean(sample[:, :, 2] < 100))
-                confidence = min(0.78, 0.40 + 0.45 * darker)
+                # Combine body / container / glyph evidence without declaring HP.
                 # Assinatura do corpo, não do texto da barra.
                 body_w = round(max(w * 1.7, 38 * scale))
                 body_h = round(max(w * 1.35, 50 * scale))
@@ -144,6 +138,11 @@ class RecognitionV1:
                 bx2 = min(image.shape[1], bx1 + body_w)
                 by2 = min(image.shape[0], by1 + body_h)
                 body = image[by1:by2, bx1:bx2]
+                evidence = evaluate_bar_evidence(
+                    hsv, x, y, w, h, body, scale
+                )
+                if evidence["confidence"] < 0.48:
+                    continue
                 signature = extract_silhouette(body)
                 stable_patch = (
                     cv2.resize(body, (48, 48), interpolation=cv2.INTER_AREA)
@@ -155,10 +154,11 @@ class RecognitionV1:
                         bbox=Rect(region.rect.x + x, region.rect.y + y, w, h),
                         kind="barra_vida_candidata",
                         color=color,
-                        confidence=confidence,
+                        confidence=evidence["confidence"],
                         signature=signature,
                         fill_fraction=None,
                         stable_patch=stable_patch,
+                        body_support=evidence["body_support"],
                     )
                 )
         return detections
@@ -288,6 +288,7 @@ class RecognitionV1:
             "regions": [
                 {
                     "name": r.name, "xywh": r.rect.xywh(),
+                    "captured_at_s": r.captured_at,
                     "sources": [
                         {"role": role, "xywh": rect.xywh()}
                         for role, rect in r.source_regions
