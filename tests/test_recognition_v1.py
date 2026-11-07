@@ -165,11 +165,12 @@ class StructuralContextTests(unittest.TestCase):
     def test_80_percent_change_preserves_id_but_flags_incertainty(self):
         memory = ContextMemory()
         bbox = Rect(170, 90, 60, 7)
+
         def make(image):
             return Detection(
-                bbox, "barra_vida_candidata", "verde", 0.7,
-                stable_patch=image
+                bbox, "barra_vida_candidata", "verde", 0.7, stable_patch=image
             )
+
         dark = np.zeros((48, 48, 3), np.uint8)
         bright = np.full_like(dark, 255)
         a = memory.update([make(dark)], [Rect(0, 0, 640, 360)], 0, (640, 360))
@@ -186,20 +187,22 @@ class RegionCaptureTests(unittest.TestCase):
         from brawlla.capture import WindowCapture
 
         requested = []
+
         class FakeMSS:
             monitors = [{"left": 0, "top": 0, "width": 1920, "height": 1080}]
+
             def grab(self, bounds):
                 requested.append(bounds)
-                return np.zeros(
-                    (bounds["height"], bounds["width"], 4), np.uint8
-                )
+                return np.zeros((bounds["height"], bounds["width"], 4), np.uint8)
 
         capture = WindowCapture.__new__(WindowCapture)
         capture.handle = 42
         capture._mss = FakeMSS()
         capture._next_visibility_check = float("inf")
         capture.quality_flags = []
-        with patch("brawlla.capture._window_client_bbox", return_value=(100, 200, 640, 360)):
+        with patch(
+            "brawlla.capture._window_client_bbox", return_value=(100, 200, 640, 360)
+        ):
             image = capture.grab_region([10, 20, 80, 40])
             self.assertEqual(image.shape, (40, 80, 3))
             self.assertEqual(requested[0]["left"], 110)
