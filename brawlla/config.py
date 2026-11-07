@@ -6,7 +6,7 @@ import math
 import warnings
 from pathlib import Path
 
-VERSION = "1.3.0"
+VERSION = "1.4.0"
 VERSION_SHORT = VERSION
 SCHEMA_VERSION = 2
 FPS_CHOICES = (5, 10, 15, 30, 60)
@@ -80,6 +80,8 @@ class VisionConfig:
     reference_width: int = 1280
     legacy_reference_width: int = 1605
     terrain_width: int = 640
+    terrain_sample_every: int = 3
+    terrain_cache_max_s: float = 0.18
     number_support_min: float = 0.018
     min_container_fraction: float = 0.45
     min_short_fill_fraction: float = 0.30
@@ -131,6 +133,14 @@ class VisionConfig:
             value = getattr(self, name)
             if type(value) is not int or not 0 <= value <= limit:
                 raise ValueError(f"{name}: inteiro fora do intervalo HSV")
+        if (
+            type(self.terrain_sample_every) is not int
+            or not 1 <= self.terrain_sample_every <= 8
+        ):
+            raise ValueError("terrain_sample_every: inteiro entre 1 e 8")
+        positive(self.terrain_cache_max_s, "terrain_cache_max_s")
+        if self.terrain_cache_max_s > 0.5:
+            raise ValueError("terrain_cache_max_s deve ser <= 0.5")
         for name in ("reference_width", "legacy_reference_width", "terrain_width"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, int) or value < 320:

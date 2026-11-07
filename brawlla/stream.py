@@ -299,6 +299,7 @@ class VisionPipeline:
                         "quality": quality,
                         "source_type": type(source).__name__,
                         "source_label": getattr(source, "source_label", ""),
+                        "source_backend": getattr(source, "backend", "mss"),
                         "window_rect_screen_xywh": getattr(source, "_last_rect", None),
                     },
                 )

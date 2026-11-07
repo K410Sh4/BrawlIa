@@ -204,6 +204,52 @@ class WindowCapture:
         self._mss.close()
 
 
+class DxcamWindowCapture:
+    """Desktop Duplication opcional. Janela precisa estar visível no monitor.
+
+    Requer pacote dxcam no Windows; usa cópias BGR independentes para que
+    o buffer não seja sobrescrito enquanto a análise lê o quadro.
+    """
+
+    def __init__(self, handle):
+        if sys.platform != "win32":
+            raise RuntimeError("DXcam exige Windows")
+        import dxcam
+
+        self.handle = int(handle)
+        self._camera = dxcam.create(output_color="BGR")
+        if self._camera is None:
+            raise RuntimeError("DXcam não conseguiu iniciar a captura")
+        self.fresh_frames = True
+        self.quality_flags = []
+        self._last_rect = None
+        self._next_visibility_check = 0.0
+
+    def grab(self):
+        x, y, width, height = _window_client_bbox(self.handle)
+        # O backend padrão captura o monitor primário. Coordenadas negativas
+        # ou áreas fora dele devem recair no MSS, sem entregar imagem errada.
+        region = (x, y, x + width, y + height)
+        if x < 0 or y < 0:
+            raise RuntimeError("DXcam primário não cobre este monitor")
+        frame = self._camera.grab(region=region, new_frame_only=False)
+        if (
+            frame is None
+            or frame.ndim != 3
+            or frame.shape[:2] != (height, width)
+            or frame.shape[2] != 3
+        ):
+            raise RuntimeError("DXcam sem quadro completo da janela")
+        self._last_rect = [x, y, width, height]
+        if time.monotonic() >= self._next_visibility_check:
+            self._next_visibility_check = time.monotonic() + 0.5
+            self.quality_flags = _window_occlusion_flags(self.handle, self._last_rect)
+        return frame
+
+    def close(self):
+        self._camera.release()
+
+
 class AutoWindowCapture:
     """Escolhe a melhor janela visível automaticamente, no thread de captura.
 
@@ -219,14 +265,35 @@ class AutoWindowCapture:
             )
         chosen = windows[0]
         self.source_label = chosen.title
-        self._source = WindowCapture(chosen.handle)
+        self._backend = "mss"
+        preference = os.getenv("BRAWLIA_CAPTURE_BACKEND", "mss").lower()
+        if preference not in ("mss", "dxcam"):
+            raise ValueError("BRAWLIA_CAPTURE_BACKEND deve ser mss ou dxcam")
+        if preference == "dxcam":
+            try:
+                self._source = DxcamWindowCapture(chosen.handle)
+                self._backend = "dxcam"
+            except (RuntimeError, ImportError, OSError, ValueError):
+                self._source = WindowCapture(chosen.handle)
+        else:
+            self._source = WindowCapture(chosen.handle)
+        self.backend = self._backend
         self.fresh_frames = True
         self.handle = chosen.handle
         self._last_rect = None
         self.quality_flags = []
 
     def grab(self):
-        result = self._source.grab()
+        try:
+            result = self._source.grab()
+        except (RuntimeError, OSError, ValueError):
+            if self._backend != "dxcam":
+                raise
+            self._source.close()
+            self._source = WindowCapture(self.handle)
+            self._backend = "mss"
+            self.backend = self._backend
+            result = self._source.grab()
         self._last_rect = self._source._last_rect
         self.quality_flags = self._source.quality_flags
         return result

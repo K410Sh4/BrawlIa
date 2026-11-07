@@ -7,6 +7,7 @@ um detector treinado e não garantem detecção correta em outros mapas/skins.
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
+import time
 from typing import Any
 from .player import PlayerLocator, white_number_support
 from .config import VisionConfig, VERSION
@@ -143,6 +144,9 @@ def detect(
     player_locator: PlayerLocator | None = None,
     timestamp_s=None,
     config=None,
+    *,
+    terrain_observer=None,
+    camera_motion=None,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     if (
         frame_bgr is None
@@ -156,37 +160,30 @@ def detect(
     if w < 320 or h < 200:
         raise ValueError("Imagem muito pequena; use captura com pelo menos 320x200 px.")
     config = config or VisionConfig()
+    stage = time.perf_counter()
     hsv = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2HSV)
     evidence = FrameEvidence(hsv, config)
+    mask_ms = (time.perf_counter() - stage) * 1000
+    stage = time.perf_counter()
     greens = _bars(hsv, "green", config=config, color_mask=evidence.color_masks[0][0])
     bar_filter = {}
     others = other_bar_observations(hsv, config, bar_filter, evidence=evidence)
-    # Terreno em no máximo 640 px: contornos são reconvertidos às coordenadas originais.
-    terrain_width = min(w, config.terrain_width)
-    terrain_height = max(1, round(h * terrain_width / w))
-    terrain_hsv = (
-        cv2.resize(
-            hsv, (terrain_width, terrain_height), interpolation=cv2.INTER_NEAREST
-        )
-        if w > config.terrain_width
-        else hsv
+    bars_ms = (time.perf_counter() - stage) * 1000
+    stage = time.perf_counter()
+    # Separar terreno de barras. Terreno pode ser reutilizado por até 180 ms;
+    # isso nunca cria nem confirma alvos, nomes ou barras de HP.
+    if terrain_observer is None:
+        from .terrain import TerrainObserver
+
+        terrain_observer = TerrainObserver(config)
+    regions, scene, terrain_status = terrain_observer.observe(
+        hsv, timestamp_s, camera_motion=camera_motion
     )
-    scene = []
-    regions = {}
-    for kind in ("bush", "wall"):
-        contours, _ = _terrain(terrain_hsv, kind, config, include_contours=True)
-        scaled = [
-            np.round(c * np.array([[[w / terrain_width, h / terrain_height]]])).astype(
-                np.int32
-            )
-            for c in contours
-        ]
-        regions[kind] = [
-            Region(*cv2.boundingRect(c), int(cv2.contourArea(c))) for c in scaled
-        ]
-        scene.append((kind, scaled))
+    terrain_ms = (time.perf_counter() - stage) * 1000
+    stage = time.perf_counter()
     locator = player_locator or PlayerLocator(config)
     player = locator.locate(hsv, timestamp_s, evidence=evidence)
+    player_ms = (time.perf_counter() - stage) * 1000
     if player:
         before = len(others)
         others = [
@@ -219,6 +216,13 @@ def detect(
         "player_health_bar_candidate": player,
         "player_detection_diagnostics": locator.diagnostics,
         "visual_processing": evidence.diagnostics(),
+        "terrain_sampling": terrain_status,
+        "vision_stage_timings_ms": {
+            "vision_masks": round(mask_ms, 3),
+            "vision_other_bars": round(bars_ms, 3),
+            "vision_terrain": round(terrain_ms, 3),
+            "vision_player": round(player_ms, 3),
+        },
         "other_green_health_bar_candidates": [
             p.to_dict()
             for p in greens
