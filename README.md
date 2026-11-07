@@ -1,4 +1,4 @@
-# BrawlIA V1.3 — Visão 30 FPS
+# BrawlIA V1.4 — Visão com perfil de desempenho
 
 Ferramenta local de **observação e análise visual**, sem comandos no jogo.
 
@@ -107,3 +107,13 @@ e os rastreadores continuam funcionando, sem inventar nomes.
 - OCR da apresentação permanece opcional; quando executado pode consumir
   CPU e reduzir a taxa efetiva. Um MP4 com 30 FPS pode repetir quadros se a
   análise não alcançar a taxa.
+
+## V1.4 — otimização auditável
+
+O cenário agora tem cache temporal limitado e compensação pela câmera quando
+há evidência suficiente. As barras e os nomes continuam sendo lidos no
+quadro atual. O OCR passou a registrar diagnósticos por cartão, sem salvar
+imagens adicionais. A captura DXcam é **opcional** para comparação com MSS,
+sem garantir FPS mais altos antes de testes no PC-alvo.
+
+[Guia e benchmarks V1.4](docs/PERFORMANCE_V14.md).

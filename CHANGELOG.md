@@ -1,3 +1,11 @@
+# 1.4.0
+
+- Terreno com amostragem temporal limitada e compensação por câmera.
+- Tempos detalhados de detecção HSV, barras, cenário e jogador.
+- Diagnóstico OCR por cartão (vazio, baixa confiança, leituras aceitas e custo).
+- Captura DXcam opcional, com fallback ao MSS e indicação do backend.
+- Benchmark offline A/B e testes; mantém 30 FPS alvo e PNGs desativados.
+
 # 1.3.0
 
 - Painel automático com metas fixas de captura/análise/vídeo em 30 FPS.
