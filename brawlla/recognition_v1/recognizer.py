@@ -17,6 +17,7 @@ from .context_engine import ContextMemory, Detection
 from .hud_context import HUDContext, HUDAnchors, detect_controls
 from .silhouette import extract_silhouette
 from .bar_validation import evaluate_bar_evidence
+from .scene_change import SceneTransitionMonitor
 
 
 @dataclass
@@ -47,6 +48,7 @@ class RecognitionV1:
     def __init__(self, state_detector=None):
         self.state_detector = state_detector or StateDetector()
         self.hud = HUDContext()
+        self.scene_monitor = SceneTransitionMonitor()
         self.memory = ContextMemory()
         self.vision = VisionConfig()
         self.previous_state = "desconhecido"
@@ -234,7 +236,7 @@ class RecognitionV1:
             (visual or {}).get("name") in ("combate", "desconhecido")
             or (visual is None and self.previous_state == "combate")
         )
-        anchors = HUDAnchors()
+        anchors = None
         if check_hud:
             anchors = self._hud_regions(regions, screen_size)
             self._last_hud_check = now
@@ -260,6 +262,9 @@ class RecognitionV1:
         ):
             self.memory.reset("transicao_de_partida_confirmada")
         self.previous_state = state["name"]
+        scene_change = self.scene_monitor.observe(
+            regions, screen_size, state["name"], now, full=full
+        )
 
         detections = []
         if state["name"] == "combate":
@@ -300,6 +305,7 @@ class RecognitionV1:
             "confirmed_tracks": sum(t.get("confirmed", False) for t in tracks),
             "hud_check_ms": round(self._last_hud_elapsed_ms, 3),
             "hud_check_performed": check_hud,
+            "scene_change_detected": scene_change,
             "limitations": [
                 "Barras e silhuetas são hipóteses heurísticas.",
                 "Não há leitura numérica exata de HP neste pipeline.",
