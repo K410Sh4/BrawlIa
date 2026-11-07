@@ -77,6 +77,17 @@ class CaptureRegion:
     rect: Rect
     reason: str
     priority: int = 1
+    # Each constituent region survives merging; coordinates remain window-relative.
+    sources: tuple[tuple[str, Rect], ...] = ()
+
+    @property
+    def source_regions(self) -> tuple[tuple[str, Rect], ...]:
+        return self.sources or ((self.name, self.rect),)
+
+    @property
+    def has_target(self) -> bool:
+        return any(role.startswith("target_") or role == "search_center"
+                   for role, _ in self.source_regions)
 
     def to_dict(self) -> dict:
         return {
@@ -84,4 +95,8 @@ class CaptureRegion:
             "xywh": self.rect.xywh(),
             "reason": self.reason,
             "priority": self.priority,
+            "sources": [
+                {"role": role, "xywh": region.xywh()}
+                for role, region in self.source_regions
+            ],
         }
