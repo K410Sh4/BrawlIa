@@ -13,6 +13,7 @@ import numpy as np
 
 from .geometry import Rect
 from .silhouette import Signature, compare_silhouettes, structural_change_ratio
+from .association import optimal_associations
 
 
 @dataclass
@@ -105,30 +106,29 @@ class ContextMemory:
                 )
                 del self.tracks[tid]
 
-    def _match(self, det: Detection, used: set[int], now: float) -> Track | None:
-        best, best_score = None, -1.0
-        for track in self.tracks.values():
-            if track.track_id in used or track.kind != det.kind:
-                continue
-            elapsed = max(0.001, now - track.last_seen)
-            cx, cy = track.bbox.center
-            px = cx + track.velocity[0] * min(elapsed, 0.35)
-            py = cy + track.velocity[1] * min(elapsed, 0.35)
-            dx = det.bbox.center[0] - px
-            dy = det.bbox.center[1] - py
-            distance = math.hypot(dx, dy)
-            max_distance = max(35, min(200, self.max_speed_px_s * elapsed + 30))
-            if distance > max_distance:
-                continue
-            silhouette = compare_silhouettes(track.signature, det.signature)
-            similarity = 1.0 - distance / max_distance
-            if silhouette is not None:
-                similarity = 0.82 * similarity + 0.18 * silhouette
-            if track.color == det.color:
-                similarity += 0.04
-            if similarity > best_score:
-                best, best_score = track, similarity
-        return best if best_score >= 0.18 else None
+    def _association_score(self, det: Detection, track: Track,
+                           now: float) -> float:
+        if track.kind != det.kind:
+            return float("-inf")
+        elapsed = max(0.001, now - track.last_seen)
+        cx, cy = track.bbox.center
+        px = cx + track.velocity[0] * min(elapsed, 0.35)
+        py = cy + track.velocity[1] * min(elapsed, 0.35)
+        dx = det.bbox.center[0] - px
+        dy = det.bbox.center[1] - py
+        distance = math.hypot(dx, dy)
+        max_distance = max(
+            35, min(200, self.max_speed_px_s * elapsed + 30)
+        )
+        if distance > max_distance:
+            return float("-inf")
+        silhouette = compare_silhouettes(track.signature, det.signature)
+        similarity = 1.0 - distance / max_distance
+        if silhouette is not None:
+            similarity = 0.82 * similarity + 0.18 * silhouette
+        if track.color == det.color:
+            similarity += 0.04
+        return similarity
 
     def _update_track(self, track: Track, det: Detection, now: float):
         elapsed = max(0.001, now - track.last_seen)
@@ -190,40 +190,47 @@ class ContextMemory:
         self._drop_expired(now)
         claimed: set[int] = set()
         new_count = 0
-        for det in sorted(detections, key=lambda item: item.confidence, reverse=True):
-            if not 0.48 <= det.confidence <= 1.0:
+        # Process bounded observations; identity must not be driven only by
+        # the greedy order of detection confidences.
+        eligible = [
+            item for item in sorted(
+                detections, key=lambda d: d.confidence, reverse=True
+            )
+            if 0.48 <= item.confidence <= 1.0
+        ][:48]
+        available = list(self.tracks.values())
+        scores = [
+            [self._association_score(det, track, now) for track in available]
+            for det in eligible
+        ]
+        paired = optimal_associations(scores)
+        associated_indices = set()
+        for detection_index, track_index in paired:
+            track = available[track_index]
+            self._update_track(track, eligible[detection_index], now)
+            claimed.add(track.track_id)
+            associated_indices.add(detection_index)
+        for index, det in enumerate(eligible):
+            if index in associated_indices:
                 continue
-            matched = self._match(det, claimed, now)
-            if matched is not None:
-                self._update_track(matched, det, now)
-                claimed.add(matched.track_id)
-            elif (
-                len(self.tracks) < self.max_tracks
-                and new_count < self.max_new_per_frame
+            if len(self.tracks) >= self.max_tracks or (
+                new_count >= self.max_new_per_frame
             ):
-                tid = self._next_id
-                self._next_id += 1
-                self.tracks[tid] = Track(
-                    tid,
-                    det.bbox,
-                    det.kind,
-                    det.color,
-                    det.confidence,
-                    now,
-                    signature=det.signature,
-                    stable_patch=det.stable_patch,
-                    fill_fraction=det.fill_fraction,
-                    body_support=det.body_support,
-                )
-                self.events.append(
-                    {
-                        "event": "candidate",
-                        "track_id": tid,
-                        "at": now,
-                    }
-                )
-                claimed.add(tid)
-                new_count += 1
+                break
+            tid = self._next_id
+            self._next_id += 1
+            self.tracks[tid] = Track(
+                tid, det.bbox, det.kind, det.color, det.confidence,
+                now, signature=det.signature,
+                stable_patch=det.stable_patch,
+                fill_fraction=det.fill_fraction,
+                body_support=det.body_support,
+            )
+            self.events.append({
+                "event": "candidate", "track_id": tid, "at": now,
+            })
+            claimed.add(tid)
+            new_count += 1
         for tid, track in self.tracks.items():
             if tid in claimed:
                 continue
