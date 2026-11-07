@@ -136,5 +136,14 @@
     "player_highlight_fallback": true,
     "player_highlight_hue_min": 64,
     "player_highlight_value_min": 200
+  },
+  "roster": {
+    "roster_frames": 3,
+    "roster_interval_s": 0.55,
+    "ocr_confidence": 0.6,
+    "roster_votes": 2,
+    "combat_interval_s": 2.5,
+    "match_threshold": 0.85,
+    "match_votes": 2
   }
 }

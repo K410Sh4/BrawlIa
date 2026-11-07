@@ -1,4 +1,4 @@
-# BrawlIA V1.1 — Captura automática
+# BrawlIA V1.2 — Captura automática
 
 Ferramenta local de **observação e análise visual**, sem comandos no jogo.
 
@@ -67,3 +67,27 @@ amostras PNG com metadados na pasta `capturas`.
 
 Ferramentas de avaliação e relatórios continuam disponíveis no repositório,
 mas os controles antigos não fazem parte do painel principal.
+
+## Cadastro da apresentação da partida — V1.2
+
+O analisador reconhece a apresentação com 10 cartões (duas fileiras) e
+atribui `P01` a `P10` às **posições**, não às trilhas de barras.
+Um worker OCR separado lê os nomes em até três imagens da apresentação,
+confirmando nomes repetidos. Nomes truncados, incertos ou duplicados não
+identificam automaticamente o jogador. O OCR durante combate é acionado
+somente em recortes de nome do jogador com intervalo de 2,5 segundos, e
+só associa `participant_id` após correspondência única e repetida.
+Também há coleta limitada de nomes sobre barras de outros personagens
+com trilhas estáveis, alternando as amostras para evitar consumo excessivo.
+
+O campo `match_roster` nos registros inclui os 10 slots, status e
+`local_participant_id`. Um `track_id` pode mudar sem alterar o
+`participant_id`, mas **nem toda trilha terá participante identificado**.
+A maioria dos outros personagens continua sem nome associado até termos um
+detector confiável de nomes inimigos.
+
+**Instalação automática de OCR no Windows:** `iniciar_windows.bat` tenta
+instalar `requirements-ocr.txt` opcionalmente. Se indisponível, a captura
+e os rastreadores continuam funcionando, sem inventar nomes.
+
+[Detalhes e limites do cadastro](docs/ROSTER_V12.md).

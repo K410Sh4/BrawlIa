@@ -80,6 +80,9 @@ class Brawlla(tk.Tk):
         self.detail = tk.StringVar(
             value="Somente observação · Vídeo e dados salvos automaticamente"
         )
+        self.roster_info = tk.StringVar(
+            value="Participantes: aguardando apresentação da partida"
+        )
         self._build()
         self.after(120, self._poll)
         self.protocol("WM_DELETE_WINDOW", self._close)
@@ -201,6 +204,14 @@ class Brawlla(tk.Tk):
 
         footer = tk.Frame(self, bg=BG)
         footer.pack(fill="x", padx=27, pady=(0, 19))
+        tk.Label(
+            footer,
+            textvariable=self.roster_info,
+            bg=BG,
+            fg=ACCENT,
+            anchor="w",
+            font=("Segoe UI Semibold", 10),
+        ).pack(fill="x", pady=(0, 5))
         for variable, color in (
             (self.origin, MUTED),
             (self.destination, TEXT),
@@ -301,6 +312,17 @@ class Brawlla(tk.Tk):
             if kind == "frame":
                 frame, data = payload
                 self.last_data = data
+                roster = data.get("match_roster", {})
+                if roster.get("status") == "detected":
+                    local = roster.get("local_participant_id") or "pendente"
+                    self.roster_info.set(
+                        f"Participantes: {roster.get('confirmed_names', 0)}/10 "
+                        f"nomes confirmados · Você: {local}"
+                    )
+                elif roster.get("status") == "ocr_unavailable":
+                    self.roster_info.set(
+                        "Participantes: OCR indisponível, consulte a documentação"
+                    )
                 if not self._closing:
                     self._preview_frame(frame)
                     source = data.get("capture", {}).get("source_label")

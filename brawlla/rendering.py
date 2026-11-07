@@ -35,7 +35,12 @@ def render_analysis(frame, data, scene):
         x, y, bw, bh = (obj[k] for k in ("x", "y", "width", "height"))
         color = colors.get(obj["kind"], (200, 200, 200))
         cv2.rectangle(image, (x - 2, y - 2), (x + bw + 2, y + bh + 2), color, 2)
-        label = f"#{obj['track_id']} {labels.get(obj['kind'], 'ALVO?')} {obj['confidence']:.2f}"
+        identity = obj.get("participant_id")
+        stable_id = f"{identity} " if identity else ""
+        label = (
+            f"{stable_id}#{obj['track_id']} "
+            f"{labels.get(obj['kind'], 'ALVO?')} {obj['confidence']:.2f}"
+        )
         if obj.get("health_status") == "low_fill_candidate":
             label += " VIDA BAIXA?"
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -62,7 +67,16 @@ def render_analysis(frame, data, scene):
         cv2.LINE_AA,
     )
     if not active:
-        text = "Deteccao de alvos suspensa fora do combate"
+        roster = data.get("match_roster", {})
+        if roster.get("status") == "detected":
+            text = (
+                f"Apresentacao: {roster.get('confirmed_names', 0)}/10 "
+                "nomes confirmados"
+            )
+        elif roster.get("status") == "ocr_unavailable":
+            text = "OCR indisponivel; gravacao visual preservada"
+        else:
+            text = "Deteccao de alvos suspensa fora do combate"
         cv2.rectangle(image, (8, h - 34), (min(w - 1, 490), h - 5), (22, 25, 30), -1)
         cv2.putText(
             image,
