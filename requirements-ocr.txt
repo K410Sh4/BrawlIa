@@ -1,0 +1,4 @@
+# OCR assíncrono dos nomes; pacote opcional para manter captura funcional.
+# RapidOCR 3.9 usa opencv-python (não opencv-python-headless da linha 3.10).
+rapidocr>=3.9,<3.10
+onnxruntime>=1.21,<2
