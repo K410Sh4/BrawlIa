@@ -200,6 +200,34 @@ class WindowCapture:
         )
         return cv2.cvtColor(shot, cv2.COLOR_BGRA2BGR)
 
+    def grab_region(self, rect: list[int] | tuple[int, int, int, int]) -> np.ndarray:
+        """Captura SOMENTE o retângulo xywh relativo ao cliente da janela.
+
+        O objeto MSS permanece no thread de captura; não efetua leitura completa.
+        """
+        wx, wy, ww, wh = _window_client_bbox(self.handle)
+        if len(rect) != 4 or any(type(v) is not int for v in rect):
+            raise ValueError("Região deve ser xywh de inteiros")
+        rx, ry, rw, rh = rect
+        if rw <= 0 or rh <= 0 or rx < 0 or ry < 0 or rx + rw > ww or ry + rh > wh:
+            raise ValueError("Região está fora do cliente do BlueStacks")
+        bounds = self._mss.monitors[0]
+        if (wx < bounds["left"] or wy < bounds["top"] or
+                wx + ww > bounds["left"] + bounds["width"] or
+                wy + wh > bounds["top"] + bounds["height"]):
+            raise RuntimeError("Janela parcialmente fora da tela")
+        self._last_rect = [wx, wy, ww, wh]
+        if time.monotonic() >= self._next_visibility_check:
+            self._next_visibility_check = time.monotonic() + 0.5
+            self.quality_flags = _window_occlusion_flags(self.handle, self._last_rect)
+        shot = np.asarray(
+            self._mss.grab({
+                "left": wx + rx, "top": wy + ry,
+                "width": rw, "height": rh,
+            })
+        )
+        return cv2.cvtColor(shot, cv2.COLOR_BGRA2BGR)
+
     def close(self) -> None:
         self._mss.close()
 
@@ -245,6 +273,28 @@ class DxcamWindowCapture:
             self._next_visibility_check = time.monotonic() + 0.5
             self.quality_flags = _window_occlusion_flags(self.handle, self._last_rect)
         return frame
+
+    def grab_region(self, rect: list[int] | tuple[int, int, int, int]) -> np.ndarray:
+        """Desktop Duplication de uma região, com coordenadas globais verificadas."""
+        wx, wy, ww, wh = _window_client_bbox(self.handle)
+        if len(rect) != 4 or any(type(v) is not int for v in rect):
+            raise ValueError("Região deve ser xywh de inteiros")
+        rx, ry, rw, rh = rect
+        if rw <= 0 or rh <= 0 or rx < 0 or ry < 0 or rx + rw > ww or ry + rh > wh:
+            raise ValueError("Região está fora do cliente do BlueStacks")
+        if wx < 0 or wy < 0:
+            raise RuntimeError("DXcam primário não cobre este monitor")
+        frame = self._camera.grab(
+            region=(wx + rx, wy + ry, wx + rx + rw, wy + ry + rh),
+            new_frame_only=False,
+        )
+        if frame is None or frame.shape != (rh, rw, 3):
+            raise RuntimeError("DXcam retornou uma região incompleta")
+        self._last_rect = [wx, wy, ww, wh]
+        if time.monotonic() >= self._next_visibility_check:
+            self._next_visibility_check = time.monotonic() + 0.5
+            self.quality_flags = _window_occlusion_flags(self.handle, self._last_rect)
+        return frame.copy()
 
     def close(self):
         self._camera.release()
@@ -294,6 +344,22 @@ class AutoWindowCapture:
             self._backend = "mss"
             self.backend = self._backend
             result = self._source.grab()
+        self._last_rect = self._source._last_rect
+        self.quality_flags = self._source.quality_flags
+        return result
+
+    def grab_region(self, rect: list[int] | tuple[int, int, int, int]) -> np.ndarray:
+        """Captura região e volta ao MSS se DXcam falhar durante a sessão."""
+        try:
+            result = self._source.grab_region(rect)
+        except (RuntimeError, OSError, ValueError):
+            if self._backend != "dxcam":
+                raise
+            self._source.close()
+            self._source = WindowCapture(self.handle)
+            self._backend = "mss"
+            self.backend = self._backend
+            result = self._source.grab_region(rect)
         self._last_rect = self._source._last_rect
         self.quality_flags = self._source.quality_flags
         return result
