@@ -1,0 +1,16 @@
+BrawlIA V2 - Fase 1 (Windows)
+
+1) Extraia TODOS os arquivos do ZIP para uma pasta sua (ex.: Downloads\BrawlIA-V2).
+2) Clique em BrawlIA-V2.exe. Nao precisa instalar Python.
+3) Abra o BlueStacks em janela visivel, configure 30 FPS e 1280x720.
+4) Pressione INICIAR TESTE 30 FPS para medir a captura REAL.
+5) Pressione PARAR E SALVAR METRICAS para concluir.
+6) Os relatorios ficam em %%LOCALAPPDATA%%\BrawlIA-V2\relatorios.
+
+Verificar atualizacoes usa o GitHub Releases oficial.
+Para atualizar, BrawlIA-V2-Updater.exe precisa estar ao lado do programa.
+A atualizacao e verificada por SHA-256 e exige confirmacao.
+O programa nao controla o jogo e nao grava PNG nem MP4 nesta fase.
+
+Se o teste mostrar menos de 30 FPS, isso indica uma limitacao de captura,
+nao uma falha de instalacao nem prova de 30 FPS reais.
