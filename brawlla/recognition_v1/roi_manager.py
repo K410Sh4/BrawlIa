@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .geometry import CaptureRegion, Rect
+from .scene_change import scene_probe_rect
 
 
 @dataclass
@@ -36,15 +37,18 @@ class ROIManager:
         max_regions: int = 7,
         max_coverage: float = 0.55,
         max_targets: int = 4,
+        terminal_full_interval_s: float = 1.50,
     ):
         if (
-            full_interval_s <= 0
+            terminal_full_interval_s <= 0
+            or full_interval_s <= 0
             or max_regions < 2
             or max_targets < 1
             or not 0 < max_coverage <= 1
         ):
             raise ValueError("Politica de ROI invalida")
         self.full_interval_s = full_interval_s
+        self.terminal_full_interval_s = terminal_full_interval_s
         self.max_regions = max_regions
         self.max_coverage = max_coverage
         self.max_targets = max_targets
@@ -190,18 +194,37 @@ class ROIManager:
         width, height = screen_size
         if width < 320 or height < 200:
             raise ValueError("Dimensao invalida")
+        interval = (
+            self.terminal_full_interval_s
+            if state in ("derrota", "resultados")
+            else self.full_interval_s
+        )
         if (
             self.force_reason
             or self.last_full is None
-            or now - self.last_full >= self.full_interval_s
+            or now - self.last_full >= interval
         ):
             return CapturePlan(
                 True, [], self.force_reason or "varredura_periodica", 1.0
             )
 
+        if state in ("derrota", "resultados"):
+            # Resultado/derrota usam uma sonda de cena, não os botões do jogo.
+            probe = CaptureRegion(
+                "scene_probe",
+                scene_probe_rect(screen_size),
+                "scene_transition",
+                2,
+            )
+            self.regional_count += 1
+            return CapturePlan(
+                False,
+                [probe],
+                "estado_terminal_regional",
+                self._coverage([probe], screen_size),
+            )
         regions = self._hud_regions(screen_size)
         if state != "combate":
-            # A full-state check still runs periodically; no full capture every tick.
             merged = self._merge(regions)
             self.regional_count += 1
             return CapturePlan(

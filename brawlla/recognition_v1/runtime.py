@@ -168,6 +168,8 @@ def run(
             store_started = time.perf_counter()
             store.submit(result, regions)
             last_enqueue_ms = (time.perf_counter() - store_started) * 1000
+            if result.get("scene_change_detected"):
+                policy.request_full_scan("mudanca_de_cena_suspeita")
             if any(
                 event.get("event") == "structural_change_persistent"
                 and event.get("streak", 0) >= 3
