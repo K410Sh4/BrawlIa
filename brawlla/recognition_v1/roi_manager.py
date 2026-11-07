@@ -79,7 +79,15 @@ class ROIManager:
             if track["status"] == "perdido":
                 continue
             x, y, w, h = track["xywh"]
-            bbox = Rect(int(x), int(y), int(w), int(h))
+            # A ROI precisa conter a barra e o corpo abaixo dela.
+            # Não deixar uma barra de ~8 px gerar uma captura de só ~12 px.
+            bw = max(int(w * 2.0), int(w) + 32)
+            bh = max(int(w * 1.65), int(h) + 60)
+            bbox = Rect(
+                round(x + w / 2 - bw / 2),
+                round(y - w * 0.20),
+                bw, bh,
+            )
             dt = max(0, now - track["last_seen"])
             vx, vy = track.get("velocity", [0.0, 0.0])
             predicted = bbox.translated(vx * min(dt, 0.35), vy * min(dt, 0.35), screen_size)

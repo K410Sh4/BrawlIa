@@ -9,9 +9,7 @@ from pathlib import Path
 import queue
 import shutil
 import threading
-import time
 import cv2
-import numpy as np
 from .recognizer import RegionImage
 
 
