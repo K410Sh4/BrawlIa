@@ -1,5 +1,9 @@
 # BrawlIA V1.4 — Visão com perfil de desempenho
 
+**Novo núcleo de reconhecimento V1 (experimental):** veja [o guia](docs/RECOGNITION_V1.md).
+No Windows use iniciar_reconhecimento_v1.bat; a aplicação V1.4 original continua disponível.
+
+
 Ferramenta local de **observação e análise visual**, sem comandos no jogo.
 
 A nova interface do BrawlIA é um painel de captura com **um único botão**:

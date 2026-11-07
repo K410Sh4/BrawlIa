@@ -81,3 +81,15 @@ CPU nem de qualidade de detecção.
 O projeto continua em modo somente leitura. Não executa comandos
 de movimento, tiro, entrada em partidas ou interação com contas.
 A branch preserva o código V1.4 completo para rollback.
+
+
+## Benchmark local da nova versão
+
+Execute:
+
+    python qa/benchmark_recognition_v1.py "CAMINHO_DA_SESSAO"
+
+O comando lê observations.jsonl e gera benchmark_recognition_v1.json
+com FPS efetivo, latência P95 do ciclo, pixels capturados, eventos e
+proporção de capturas regionais/globais. Este tempo inclui a captura e
+a análise, não sendo diretamente equivalente à latência da V1.4.

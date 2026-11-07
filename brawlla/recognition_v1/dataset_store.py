@@ -103,7 +103,12 @@ class DatasetStore:
                     except queue.Empty:
                         continue
                     encoded_observation = json.dumps(result, ensure_ascii=False) + "\n"
+                    observation_cost = len(encoded_observation.encode("utf-8"))
+                    if self.bytes_saved + observation_cost > self.max_bytes:
+                        self.error = "Limite do dataset atingido pelas observacoes"
+                        break
                     events.write(encoded_observation)
+                    self.bytes_saved += observation_cost
                     self.records += 1
                     for index, (name, coords, frame) in enumerate(samples):
                         if self.written >= self.max_images:

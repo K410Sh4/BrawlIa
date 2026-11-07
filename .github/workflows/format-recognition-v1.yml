@@ -16,7 +16,7 @@ jobs:
           python-version: '3.11'
       - run: python -m pip install -r requirements-dev.txt
       - name: Normalize formatting
-        run: python -m black brawlla/recognition_v1 brawlla/capture.py tests/test_recognition_v1.py run_recognition_v1.py
+        run: python -m black brawlla/recognition_v1 brawlla/capture.py tests/test_recognition_v1.py run_recognition_v1.py qa/benchmark_recognition_v1.py
       - name: Commit formatting to feature branch only
         run: |
           git config user.name "github-actions[bot]"
