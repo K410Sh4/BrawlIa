@@ -41,7 +41,7 @@ class MemoryStateTests(unittest.TestCase):
         self.assertEqual(fast.confidence, slow.confidence)
         self.assertGreater(fast.confidence, 0.75)
         self.assertEqual(fast.update(None, 3.0)["name"], "resultados")
-        self.assertAlmostEqual(fast.confidence, 0.92 * 0.93 ** 2, places=7)
+        self.assertAlmostEqual(fast.confidence, 0.92 * 0.93**2, places=7)
 
     def test_terminal_reconfirmation_restores_confidence_anchor(self):
         memory = GameStateMemory()
