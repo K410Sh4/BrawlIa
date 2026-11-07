@@ -277,7 +277,7 @@ class AutoWindowCapture:
                 self._source = WindowCapture(chosen.handle)
         else:
             self._source = WindowCapture(chosen.handle)
-        self.source_label = f"{chosen.title} [{self._backend}]"
+        self.backend = self._backend
         self.fresh_frames = True
         self.handle = chosen.handle
         self._last_rect = None
@@ -292,7 +292,7 @@ class AutoWindowCapture:
             self._source.close()
             self._source = WindowCapture(self.handle)
             self._backend = "mss"
-            self.source_label = self.source_label.rsplit(" [", 1)[0] + " [mss]"
+            self.backend = self._backend
             result = self._source.grab()
         self._last_rect = self._source._last_rect
         self.quality_flags = self._source.quality_flags
