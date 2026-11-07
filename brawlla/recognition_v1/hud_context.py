@@ -9,6 +9,8 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
+from .game_state_memory import GameStateMemory
+
 
 @dataclass(frozen=True)
 class HUDAnchors:
@@ -90,69 +92,7 @@ def detect_controls(
     return HUDAnchors(attack=attack, movement=left, gadget=gadget)
 
 
-class HUDContext:
-    """Estado global não depende de uma barra ou de um único frame."""
+class HUDContext(GameStateMemory):
+    """Interface histórica que encaminha à memória contextual V1.1."""
 
-    def __init__(self, grace_s: float = 2.5):
-        self.grace_s = grace_s
-        self.state = "desconhecido"
-        self.last_combat = None
-        self.last_confirmed = None
-        self.anchor_streak = 0
-        self.confidence = 0.0
-
-    def update(
-        self,
-        anchors: HUDAnchors,
-        now: float,
-        visual_state: str | None = None,
-        visual_confidence: float = 0.0,
-    ) -> dict:
-        if anchors.combat_candidate:
-            self.anchor_streak += 1
-        else:
-            self.anchor_streak = 0
-        if visual_state == "combate":
-            self.state = "combate"
-            self.confidence = max(0.5, float(visual_confidence))
-            self.last_confirmed = now
-            self.last_combat = now
-            reason = "state_detector"
-        elif visual_state in ("pre_partida", "derrota", "resultados"):
-            self.state = visual_state
-            self.confidence = max(0.5, float(visual_confidence))
-            self.last_confirmed = now
-            reason = "transicao_confirmada"
-        elif self.anchor_streak >= 2:
-            self.state = "combate"
-            self.last_combat = now
-            self.confidence = min(0.75, 0.45 + anchors.score * 0.30)
-            reason = "ancoras_circulares_heuristicas"
-        elif (
-            self.state == "combate"
-            and self.last_combat is not None
-            and (now - self.last_combat <= self.grace_s)
-        ):
-            self.confidence = min(self.confidence, 0.49)
-            reason = "hud_temporariamente_ausente"
-        else:
-            self.state = "desconhecido"
-            self.confidence = 0.0
-            reason = "sem_evidencia_atual"
-        return {
-            "name": self.state,
-            "confidence": round(self.confidence, 3),
-            "uncertain": reason
-            in (
-                "hud_temporariamente_ausente",
-                "ancoras_circulares_heuristicas",
-                "sem_evidencia_atual",
-            ),
-            "reason": reason,
-            "anchors": {
-                "attack": anchors.attack,
-                "movement": anchors.movement,
-                "gadget": anchors.gadget,
-                "score": anchors.score,
-            },
-        }
+    pass
