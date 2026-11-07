@@ -86,8 +86,10 @@ class CaptureRegion:
 
     @property
     def has_target(self) -> bool:
-        return any(role.startswith("target_") or role == "search_center"
-                   for role, _ in self.source_regions)
+        return any(
+            role.startswith("target_") or role == "search_center"
+            for role, _ in self.source_regions
+        )
 
     def to_dict(self) -> dict:
         return {

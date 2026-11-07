@@ -3,6 +3,7 @@
 The planner never uses old predictions as ground truth. It prioritizes confirmed
 tracks, preserves source ROIs after merging and bounds pixel/region budgets.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -86,8 +87,11 @@ class ROIManager:
             name = deduped[0][0] if len(deduped) == 1 else "merged"
             merged.append(
                 CaptureRegion(
-                    name, rect, "+".join(dict.fromkeys(reasons)),
-                    priority, deduped,
+                    name,
+                    rect,
+                    "+".join(dict.fromkeys(reasons)),
+                    priority,
+                    deduped,
                 )
             )
         return merged
@@ -100,12 +104,12 @@ class ROIManager:
         h = height - top
         side = round(width * 0.20)
         return [
+            CaptureRegion("hud_left", Rect(0, top, side, h), "movement_anchor", 2),
             CaptureRegion(
-                "hud_left", Rect(0, top, side, h), "movement_anchor", 2
-            ),
-            CaptureRegion(
-                "hud_right", Rect(width - side, top, side, h),
-                "attack_anchor", 2,
+                "hud_right",
+                Rect(width - side, top, side, h),
+                "attack_anchor",
+                2,
             ),
         ]
 
@@ -154,9 +158,7 @@ class ROIManager:
         )
         dt = max(0, now - float(track["last_seen"]))
         vx, vy = track.get("velocity", [0.0, 0.0])
-        predicted = bbox.translated(
-            vx * min(dt, 0.35), vy * min(dt, 0.35), size
-        )
+        predicted = bbox.translated(vx * min(dt, 0.35), vy * min(dt, 0.35), size)
         if predicted is None:
             return None
         margin = 0.45 if track.get("status") != "observado" else 0.28
@@ -164,17 +166,18 @@ class ROIManager:
         if rect is None:
             return None
         tid = track["track_id"]
-        return CaptureRegion(
-            "target_" + str(tid), rect, "confirmed_track", 3
-        )
+        return CaptureRegion("target_" + str(tid), rect, "confirmed_track", 3)
 
     @staticmethod
     def _coverage(regions: list[CaptureRegion], size: tuple[int, int]) -> float:
         return sum(r.rect.area for r in regions) / (size[0] * size[1])
 
     def plan(
-        self, now: float, screen_size: tuple[int, int],
-        state: str, tracks: list[dict],
+        self,
+        now: float,
+        screen_size: tuple[int, int],
+        state: str,
+        tracks: list[dict],
     ) -> CapturePlan:
         width, height = screen_size
         if width < 320 or height < 200:
@@ -194,7 +197,9 @@ class ROIManager:
             merged = self._merge(regions)
             self.regional_count += 1
             return CapturePlan(
-                False, merged, "estado_estavel_regional",
+                False,
+                merged,
+                "estado_estavel_regional",
                 self._coverage(merged, screen_size),
             )
 
@@ -204,19 +209,22 @@ class ROIManager:
             reverse=True,
         )
         eligible = [
-            t for t in ranked
+            t
+            for t in ranked
             if self._score_target(t, now, screen_size) != float("-inf")
         ]
         suppressed = max(0, len(eligible) - self.max_targets)
         accepted = 0
-        for track in eligible[:self.max_targets]:
+        for track in eligible[: self.max_targets]:
             candidate = self._target_region(track, now, screen_size)
             if candidate is None:
                 suppressed += 1
                 continue
             trial = self._merge(regions + [candidate])
-            if (len(trial) <= self.max_regions and
-                    self._coverage(trial, screen_size) <= self.max_coverage):
+            if (
+                len(trial) <= self.max_regions
+                and self._coverage(trial, screen_size) <= self.max_coverage
+            ):
                 regions.append(candidate)
                 accepted += 1
             else:
@@ -224,21 +232,24 @@ class ROIManager:
         if accepted == 0:
             # Cheap central search prevents total blindness while tracks warm up.
             center = Rect(
-                round(width * 0.37), round(height * 0.31),
-                round(width * 0.26), round(height * 0.35),
+                round(width * 0.37),
+                round(height * 0.31),
+                round(width * 0.26),
+                round(height * 0.35),
             )
-            trial = self._merge(regions + [
-                CaptureRegion("search_center", center, "discovery", 1)
-            ])
+            trial = self._merge(
+                regions + [CaptureRegion("search_center", center, "discovery", 1)]
+            )
             if self._coverage(trial, screen_size) <= self.max_coverage:
-                regions.append(
-                    CaptureRegion("search_center", center, "discovery", 1)
-                )
+                regions.append(CaptureRegion("search_center", center, "discovery", 1))
         merged = self._merge(regions)
         self.regional_count += 1
         self.suppressed_total += suppressed
         reason = "captura_estrategica" if not suppressed else "alvos_limitados"
         return CapturePlan(
-            False, merged, reason, self._coverage(merged, screen_size),
+            False,
+            merged,
+            reason,
+            self._coverage(merged, screen_size),
             suppressed,
         )

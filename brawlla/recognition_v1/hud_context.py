@@ -45,9 +45,13 @@ def detect_controls(
     # Limit the input resolution so large BlueStacks windows remain affordable.
     scale = min(1.0, 256 / max(w, h))
     reduced = (
-        cv2.resize(frame, (max(1, round(w * scale)), max(1, round(h * scale))),
-                   interpolation=cv2.INTER_AREA)
-        if scale < 1.0 else frame
+        cv2.resize(
+            frame,
+            (max(1, round(w * scale)), max(1, round(h * scale))),
+            interpolation=cv2.INTER_AREA,
+        )
+        if scale < 1.0
+        else frame
     )
     gray = cv2.cvtColor(reduced, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (5, 5), 1.0)

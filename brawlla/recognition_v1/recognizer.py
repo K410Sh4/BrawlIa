@@ -138,9 +138,7 @@ class RecognitionV1:
                 bx2 = min(image.shape[1], bx1 + body_w)
                 by2 = min(image.shape[0], by1 + body_h)
                 body = image[by1:by2, bx1:bx2]
-                evidence = evaluate_bar_evidence(
-                    hsv, x, y, w, h, body, scale
-                )
+                evidence = evaluate_bar_evidence(hsv, x, y, w, h, body, scale)
                 if evidence["confidence"] < 0.48:
                     continue
                 signature = extract_silhouette(body)
@@ -185,9 +183,7 @@ class RecognitionV1:
             )
             ox = clipped.x - region.rect.x
             oy = clipped.y - region.rect.y
-            img = region.image[
-                oy : oy + clipped.h, ox : ox + clipped.w
-            ]
+            img = region.image[oy : oy + clipped.h, ox : ox + clipped.w]
             areas.append(RegionImage(name, clipped, img))
         return areas
 
@@ -234,10 +230,9 @@ class RecognitionV1:
         # HUD geometry is expensive and only useful while fighting or uncertain.
         # Checks are rate limited; do not fabricate repeated observations.
         hud_started = time.perf_counter()
-        check_hud = (
-            now - self._last_hud_check >= self._hud_interval_s
-            and ((visual or {}).get("name") in ("combate", "desconhecido")
-                 or (visual is None and self.previous_state == "combate"))
+        check_hud = now - self._last_hud_check >= self._hud_interval_s and (
+            (visual or {}).get("name") in ("combate", "desconhecido")
+            or (visual is None and self.previous_state == "combate")
         )
         anchors = HUDAnchors()
         if check_hud:
@@ -287,7 +282,8 @@ class RecognitionV1:
             "capture_mode": "full" if full else "regional",
             "regions": [
                 {
-                    "name": r.name, "xywh": r.rect.xywh(),
+                    "name": r.name,
+                    "xywh": r.rect.xywh(),
                     "captured_at_s": r.captured_at,
                     "sources": [
                         {"role": role, "xywh": rect.xywh()}

@@ -115,7 +115,9 @@ def run(
                 screen_size = width, height
                 regions = [
                     RegionImage(
-                        "full", Rect(0, 0, width, height), frame,
+                        "full",
+                        Rect(0, 0, width, height),
+                        frame,
                         captured_at=time.perf_counter(),
                     )
                 ]
@@ -127,7 +129,9 @@ def run(
                         image = capture.grab_region(region.rect.xywh())
                         regions.append(
                             RegionImage(
-                                region.name, region.rect, image,
+                                region.name,
+                                region.rect,
+                                image,
                                 sources=region.source_regions,
                                 captured_at=time.perf_counter(),
                             )
@@ -139,7 +143,9 @@ def run(
                     screen_size = width, height
                     regions = [
                         RegionImage(
-                            "full", Rect(0, 0, width, height), frame,
+                            "full",
+                            Rect(0, 0, width, height),
+                            frame,
                             captured_at=time.perf_counter(),
                         )
                     ]
@@ -147,24 +153,16 @@ def run(
                     full = True
                     reason = "fallback_global"
             capture_ended = time.perf_counter()
-            result = detector.observe(
-                regions, screen_size, now=started, full=full
-            )
+            result = detector.observe(regions, screen_size, now=started, full=full)
             analysis_ended = time.perf_counter()
             result["capture_reason"] = reason
             result["capture_backend"] = capture.backend
             result["acquired_pixels"] = sum(r.rect.area for r in regions)
             result["full_screen_pixels"] = screen_size[0] * screen_size[1]
-            result["capture_ms"] = round(
-                (capture_ended - capture_started) * 1000, 3
-            )
-            result["analysis_ms"] = round(
-                (analysis_ended - capture_ended) * 1000, 3
-            )
+            result["capture_ms"] = round((capture_ended - capture_started) * 1000, 3)
+            result["analysis_ms"] = round((analysis_ended - capture_ended) * 1000, 3)
             result["roi_suppressed_targets"] = suppressed
-            result["processing_ms"] = round(
-                (analysis_ended - started) * 1000, 3
-            )
+            result["processing_ms"] = round((analysis_ended - started) * 1000, 3)
             result["dataset_queue_depth"] = store.queue.qsize()
             result["dataset_enqueue_ms_previous_cycle"] = round(last_enqueue_ms, 3)
             store_started = time.perf_counter()

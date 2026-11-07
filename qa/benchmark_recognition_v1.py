@@ -67,7 +67,9 @@ def benchmark(folder: Path):
         "stages": {
             key: stage_stats(entries, key)
             for key in (
-                "capture_ms", "analysis_ms", "hud_check_ms",
+                "capture_ms",
+                "analysis_ms",
+                "hud_check_ms",
                 "dataset_enqueue_ms_previous_cycle",
                 "processing_ms",
             )

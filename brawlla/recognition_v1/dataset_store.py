@@ -54,12 +54,14 @@ class DatasetStore:
             raise RuntimeError(self.error)
         now = result["timestamp_s"]
         critical_events = {
-            "confirmed", "lost", "structural_change_persistent",
-            "reset", "state_change",
+            "confirmed",
+            "lost",
+            "structural_change_persistent",
+            "reset",
+            "state_change",
         }
         critical = any(
-            event.get("event") in critical_events
-            for event in result.get("events", [])
+            event.get("event") in critical_events for event in result.get("events", [])
         )
         sample = critical or (now - self._last_sample >= self.sample_interval_s)
         if sample:
@@ -67,10 +69,9 @@ class DatasetStore:
         # Arrays capturados são próprios por quadro no backend; copiar para
         # impedir sobrescrita por fontes que reutilizem buffers no futuro.
         samples = (
-            [
-                (r.name, r.rect.xywh(), r.image.copy(), r.captured_at)
-                for r in regions
-            ] if sample else []
+            [(r.name, r.rect.xywh(), r.image.copy(), r.captured_at) for r in regions]
+            if sample
+            else []
         )
         try:
             self.queue.put_nowait((dict(result), samples))
