@@ -84,6 +84,7 @@ def run(
     policy = ROIManager()
     screen_size = None
     error = None
+    last_enqueue_ms = 0.0
     store.start()
     try:
         capture = AutoWindowCapture()
@@ -104,36 +105,71 @@ def run(
             else:
                 plan = policy.plan(started, screen_size, state, tracks)
                 full, reason = plan.full, plan.reason
+            capture_started = time.perf_counter()
+            suppressed = 0 if screen_size is None else plan.suppressed_targets
             if full:
                 frame = capture.grab()
                 height, width = frame.shape[:2]
                 if screen_size and screen_size != (width, height):
                     detector.memory.reset("resolucao_alterada")
                 screen_size = width, height
-                regions = [RegionImage("full", Rect(0, 0, width, height), frame)]
+                regions = [
+                    RegionImage(
+                        "full", Rect(0, 0, width, height), frame,
+                        captured_at=time.perf_counter(),
+                    )
+                ]
                 policy.note_full(started)
             else:
                 regions = []
                 try:
                     for region in plan.regions:
                         image = capture.grab_region(region.rect.xywh())
-                        regions.append(RegionImage(region.name, region.rect, image))
+                        regions.append(
+                            RegionImage(
+                                region.name, region.rect, image,
+                                sources=region.source_regions,
+                                captured_at=time.perf_counter(),
+                            )
+                        )
                 except (RuntimeError, OSError, ValueError):
                     policy.request_full_scan("falha_de_captura_regional")
                     frame = capture.grab()
                     height, width = frame.shape[:2]
                     screen_size = width, height
-                    regions = [RegionImage("full", Rect(0, 0, width, height), frame)]
+                    regions = [
+                        RegionImage(
+                            "full", Rect(0, 0, width, height), frame,
+                            captured_at=time.perf_counter(),
+                        )
+                    ]
                     policy.note_full(started)
                     full = True
                     reason = "fallback_global"
-            result = detector.observe(regions, screen_size, now=started, full=full)
+            capture_ended = time.perf_counter()
+            result = detector.observe(
+                regions, screen_size, now=started, full=full
+            )
+            analysis_ended = time.perf_counter()
             result["capture_reason"] = reason
             result["capture_backend"] = capture.backend
             result["acquired_pixels"] = sum(r.rect.area for r in regions)
             result["full_screen_pixels"] = screen_size[0] * screen_size[1]
-            result["processing_ms"] = round((time.perf_counter() - started) * 1000, 3)
+            result["capture_ms"] = round(
+                (capture_ended - capture_started) * 1000, 3
+            )
+            result["analysis_ms"] = round(
+                (analysis_ended - capture_ended) * 1000, 3
+            )
+            result["roi_suppressed_targets"] = suppressed
+            result["processing_ms"] = round(
+                (analysis_ended - started) * 1000, 3
+            )
+            result["dataset_queue_depth"] = store.queue.qsize()
+            result["dataset_enqueue_ms_previous_cycle"] = round(last_enqueue_ms, 3)
+            store_started = time.perf_counter()
             store.submit(result, regions)
+            last_enqueue_ms = (time.perf_counter() - store_started) * 1000
             if any(
                 event.get("event") == "structural_change_persistent"
                 and event.get("streak", 0) >= 3
