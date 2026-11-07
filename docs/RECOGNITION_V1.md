@@ -46,7 +46,7 @@ Não são enviados para a internet.
   observados. A prévia regional deixa o restante da imagem preto
   e indica essa ausência explicitamente.
 - Um quadro completo é adquirido periodicamente (padrão: a cada
-  0,75 segundo), e sempre que necessário.
+  0,90 segundo), e sempre que necessário.
 - O detector de barras regional é uma nova linha de pesquisa: **não
   promete reproduzir a precisão do detector completo da V1.4**.
 - Silhuetas ajudam na associação, mas não distinguem de forma
@@ -93,3 +93,37 @@ O comando lê observations.jsonl e gera benchmark_recognition_v1.json
 com FPS efetivo, latência P95 do ciclo, pixels capturados, eventos e
 proporção de capturas regionais/globais. Este tempo inclui a captura e
 a análise, não sendo diretamente equivalente à latência da V1.4.
+
+
+## Refatoração da auditoria de captura seletiva
+
+Esta refatoração preserva a origem das regiões quando HUD e alvo
+se sobrepõem. O planejamento mantém sources com nomes e retângulos
+globais. A detecção de barras é efetuada nas subáreas de alvo,
+não conforme o nome arbitrário da região unida.
+
+A política agora limita alvos confirmados por ranking e orçamento
+de pixels. Uma região central ajuda na recuperação enquanto ainda
+não há alvo confirmado. Capturas completas permanecem periódicas.
+
+ContextMemory mantém candidatos em estado candidate até a segunda
+observação compatível; depois disso são confirmed e podem receber
+ROI dedicada. Candidatos expiram mais cedo e rastros confirmados
+possuem TTL próprio, mesmo sem a região voltar a ser observada.
+
+O módulo de avaliação de barras combina evidências de formato,
+contêiner, caracteres claros próximos e corpo, sem afirmar HP numérico
+ou identidade de personagem. Verificações do HUD são limitadas a
+quatro por segundo, em regiões menores e com Hough escalonado.
+
+### Instrumentação
+
+O arquivo observations.jsonl registra capture_ms, analysis_ms,
+hud_check_ms, roi_suppressed_targets, capture_reason,
+dataset_queue_depth e pixels adquiridos, além da duração total.
+Cada PNG no manifest.jsonl inclui captured_at_s por recorte.
+A escrita de PNGs não dispara para cada novo candidato provisório.
+
+O benchmark local separa custos de captura, análise, HUD, enfileiramento
+e razões para varreduras globais. Não mede acurácia sem rótulos humanos.
+Capturas anteriores com overlays não substituem validação no BlueStacks.
