@@ -75,11 +75,10 @@ class GameStateMemory:
     def evaluate_state_confidence(self, now: float) -> float:
         """Confiança operacional relativa, não probabilidade calibrada."""
         if self.state in TERMINAL_STATES:
-            elapsed_s = (
-                max(0.0, now - self.last_confirmed)
-                if self.last_confirmed is not None
-                else 0.0
-            )
+            if self.last_confirmed is None:
+                elapsed_s = 0.0
+            else:
+                elapsed_s = max(0.0, now - self.last_confirmed)
             return max(0.50, self._confirmed_confidence * (0.93 ** elapsed_s))
         if self.state == "combate" and self.last_combat is not None:
             ratio = min(1.0, max(0.0, (now - self.last_combat) / self.grace_s))
