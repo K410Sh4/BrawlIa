@@ -1,11 +1,11 @@
-# BrawlIA V1.2 — Captura automática
+# BrawlIA V1.3 — Visão 30 FPS
 
 Ferramenta local de **observação e análise visual**, sem comandos no jogo.
 
 A nova interface do BrawlIA é um painel de captura com **um único botão**:
 o usuário abre o BlueStacks, clica em "Iniciar captura automática" e
 o sistema localiza a janela visível, grava vídeo + histórico + amostras PNG,
-além de adaptar FPS de captura e análise à capacidade observada.
+com metas fixas de captura, análise e vídeo a 30 FPS.
 
 ## Iniciar no Windows
 
@@ -23,15 +23,15 @@ pixels visíveis do desktop, portanto evite janelas sobre o emulador.
 A pasta de destino aparece na interface. Arquivos de sessão ficam em:
 `%LOCALAPPDATA%\\Brawlla\\gravacoes\\<sessao>`.
 
-## FPS dinâmicos
+## Visão computacional a 30 FPS
 
-Taxas de 5 até 60 FPS, limitadas por latência p90 recente de captura e análise,
-com margem de segurança. Ajustes gradativos a cada janela de amostras de
-2 segundos. **Isso mede a capacidade efetiva da máquina, não a ocupação
+No painel principal, 30 FPS são metas fixas de captura e análise,
+com a política de usar sempre o quadro mais recente. Não há promessa de
+30 análises reais por segundo em qualquer cena. **Isso mede a capacidade efetiva da máquina, não a ocupação
 direta da GPU.** Na V1.0, a visão heurística ainda é executada em CPU/OpenCV.
 Suporte de GPU via ONNX/DirectML permanece experimental e somente offline.
 
-O vídeo mantém FPS nominal fixo de 15 para preservar o formato MP4; o
+O vídeo mantém FPS nominal fixo de 30 para preservar o formato MP4; o
 ritmo de captura/análise é adaptativo e consta em `sessao.json`.
 A V1.1 evita uma cópia desnecessária do quadro completo nas fontes MSS
 e considera também o tempo de entrega à gravação no feedback de FPS.
@@ -91,3 +91,19 @@ instalar `requirements-ocr.txt` opcionalmente. Se indisponível, a captura
 e os rastreadores continuam funcionando, sem inventar nomes.
 
 [Detalhes e limites do cadastro](docs/ROSTER_V12.md).
+
+## V1.3: foco em visão computacional
+
+- Captura alvo **30 FPS**, análise alvo **30 FPS**, vídeo **30 FPS nominal**.
+- Controle adaptativo desligado no painel principal, sem reduzir o alvo para
+  5 FPS durante cenas complexas; se cada análise demorar mais de 33,3 ms, a
+  taxa real cairá e os quadros antigos serão substituídos para evitar backlog.
+- Coleta de **PNGs desligada**. `record_samples=False`, sem inicializar
+  `SampleRecorder`. Vídeo MP4, JSONL e telemetria continuam ativos.
+- `autoavaliacao.json`: relatório leve de detecções incertas, perda do jogador,
+  HP potencialmente ambíguo e latência. Usa apenas metadados já disponíveis.
+  Ajuda a escolher exemplos para revisão no vídeo gravado, não aprende pesos
+  nem altera limites automaticamente.
+- OCR da apresentação permanece opcional; quando executado pode consumir
+  CPU e reduzir a taxa efetiva. Um MP4 com 30 FPS pode repetir quadros se a
+  análise não alcançar a taxa.

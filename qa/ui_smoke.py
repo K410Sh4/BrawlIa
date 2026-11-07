@@ -60,7 +60,12 @@ with tempfile.TemporaryDirectory() as tmp:
             app._toggle()
             advance(app, 1.6)
             assert app.active
-            assert app.session.pipeline.adaptive is not None
+            assert app.session.pipeline.adaptive is None
+            assert app.session.options.capture_fps == 30
+            assert app.session.options.analysis_fps == 30
+            assert app.session.options.video_fps == 30
+            assert app.session.options.record_samples is False
+            assert app.session.sampler is None
             with patch("app.open_recording_folder") as opener:
                 app._open_recording()
                 opener.assert_called_once_with(app.session.folder)
@@ -74,8 +79,11 @@ with tempfile.TemporaryDirectory() as tmp:
                 app._open_recording()
                 opener.assert_called_once_with(app.session.folder)
             assert app.session.last_summary["history"]["complete"]
-            assert app.session.last_summary["pipeline"]["adaptive_fps"]["enabled"]
-            print("V1 smoke: captura, FPS adaptativo e finalização aprovados")
+            assert not app.session.last_summary["pipeline"]["adaptive_fps"]["enabled"]
+            assert app.session.last_summary["video"]["verified"]
+            assert not app.session.last_summary["samples_requested"]
+            assert app.session.last_summary["self_review"]["frames_seen"] > 0
+            print("V1.3 smoke: 30 FPS alvo, sem PNG, vídeo e autoavaliação aprovados")
         finally:
             if app.session.active:
                 app.session.stop()
