@@ -1,4 +1,5 @@
 """Regression tests for dataset queue lifecycle and accounting."""
+
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -21,7 +22,9 @@ class DatasetIntegrityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             store = DatasetStore(folder)
             store._thread = object()
-            with patch.object(store.curator, "select_samples", return_value=(False, "none")):
+            with patch.object(
+                store.curator, "select_samples", return_value=(False, "none")
+            ):
                 store.submit({"frame_id": 1}, [])
                 store.submit({"frame_id": 2}, [])
             snapshot = store.snapshot()
