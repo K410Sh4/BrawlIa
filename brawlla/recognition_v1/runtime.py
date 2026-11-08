@@ -61,6 +61,13 @@ def _preview(regions, size, result, full):
     return image
 
 
+def reconcile_screen_size(previous_size, new_size, memory):
+    """Invalida rastros quando o tamanho da captura muda, inclusive no fallback."""
+    if previous_size is not None and previous_size != new_size:
+        memory.reset("resolucao_alterada")
+    return new_size
+
+
 def run(
     *,
     target_fps: int = 30,
@@ -110,9 +117,9 @@ def run(
             if full:
                 frame = capture.grab()
                 height, width = frame.shape[:2]
-                if screen_size and screen_size != (width, height):
-                    detector.memory.reset("resolucao_alterada")
-                screen_size = width, height
+                screen_size = reconcile_screen_size(
+                    screen_size, (width, height), detector.memory
+                )
                 regions = [
                     RegionImage(
                         "full",
@@ -140,7 +147,9 @@ def run(
                     policy.request_full_scan("falha_de_captura_regional")
                     frame = capture.grab()
                     height, width = frame.shape[:2]
-                    screen_size = width, height
+                    screen_size = reconcile_screen_size(
+                        screen_size, (width, height), detector.memory
+                    )
                     regions = [
                         RegionImage(
                             "full",
