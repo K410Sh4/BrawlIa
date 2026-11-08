@@ -40,6 +40,7 @@ class DatasetStore:
         self.curator = DatasetCurator(interval_s=sample_interval_s)
         self.selected = 0
         self._stop = threading.Event()
+        self._accept_lock = threading.Lock()
         self._thread = None
 
     def start(self):
@@ -65,16 +66,22 @@ class DatasetStore:
             if sample
             else []
         )
-        try:
-            self.queue.put_nowait((dict(result), samples))
-        except queue.Full:
-            self.dropped += 1
-            # Não ocultar perda de histórico.
-            self.error = "Fila de dataset cheia, registros podem estar incompletos"
-            raise RuntimeError(self.error)
+        with self._accept_lock:
+            if self._stop.is_set():
+                raise RuntimeError("DatasetStore já está encerrando")
+            if self.error:
+                raise RuntimeError(self.error)
+            try:
+                self.queue.put_nowait((dict(result), samples))
+            except queue.Full:
+                self.dropped += 1
+                # Não ocultar perda de histórico.
+                self.error = "Fila de dataset cheia, registros podem estar incompletos"
+                raise RuntimeError(self.error)
 
     def stop(self):
-        self._stop.set()
+        with self._accept_lock:
+            self._stop.set()
 
     def join(self, timeout=None):
         if self._thread:
