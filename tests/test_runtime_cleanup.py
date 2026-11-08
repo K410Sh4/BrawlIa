@@ -38,9 +38,7 @@ class RuntimeCleanupTests(unittest.TestCase):
     def test_normal_cleanup(self):
         capture = Mock()
         store = Mock()
-        self.assertEqual(
-            finalize_runtime_resources(capture, store, preview=False), []
-        )
+        self.assertEqual(finalize_runtime_resources(capture, store, preview=False), [])
         capture.close.assert_called_once_with()
         store.stop.assert_called_once_with()
         store.join.assert_called_once_with()
