@@ -54,6 +54,10 @@ class DatasetStore:
     def submit(self, result: dict, regions: list[RegionImage]):
         if self._thread is None:
             raise RuntimeError("DatasetStore não iniciado")
+        # Reject closed stores before parsing potentially incomplete observations.
+        # The synchronized check below still protects the enqueue/stop race.
+        if self._stop.is_set():
+            raise RuntimeError("DatasetStore já está encerrando")
         if self.error:
             raise RuntimeError(self.error)
         sample, reason = self.curator.select_samples(result)
