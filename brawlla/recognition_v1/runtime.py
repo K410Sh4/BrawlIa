@@ -61,6 +61,31 @@ def _preview(regions, size, result, full):
     return image
 
 
+
+def finalize_runtime_resources(capture, store, *, preview: bool) -> list[Exception]:
+    """Close capture/UI independently and always stop and join the dataset worker."""
+    errors = []
+    try:
+        if capture is not None:
+            capture.close()
+    except Exception as exc:
+        errors.append(exc)
+    try:
+        if preview:
+            cv2.destroyAllWindows()
+    except Exception as exc:
+        errors.append(exc)
+    try:
+        store.stop()
+    except Exception as exc:
+        errors.append(exc)
+    finally:
+        try:
+            store.join()
+        except Exception as exc:
+            errors.append(exc)
+    return errors
+
 def run(
     *,
     target_fps: int = 30,
@@ -212,12 +237,9 @@ def run(
         print("ERRO:", error, flush=True)
         raise
     finally:
-        if capture is not None:
-            capture.close()
-        if preview:
-            cv2.destroyAllWindows()
-        store.stop()
-        store.join()
+        cleanup_errors = finalize_runtime_resources(capture, store, preview=preview)
+        for cleanup_error in cleanup_errors:
+            print("Falha na limpeza:", repr(cleanup_error), flush=True)
         print("Sessão encerrada:", store.snapshot(), flush=True)
         if error:
             print("Falha de execução:", error, flush=True)
