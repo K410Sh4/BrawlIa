@@ -183,7 +183,12 @@ class DatasetStore:
         except Exception as exc:
             self.error = self.error or str(exc)
         finally:
-            (self.folder / "dataset_summary.json").write_text(
-                json.dumps(self.snapshot(), ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
+            try:
+                (self.folder / "dataset_summary.json").write_text(
+                    json.dumps(self.snapshot(), ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+            except OSError as exc:
+                # Preserve the original worker failure, if any.
+                if self.error is None:
+                    self.error = f"Falha ao salvar resumo do dataset: {exc}"
