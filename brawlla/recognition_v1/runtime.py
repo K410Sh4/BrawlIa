@@ -61,7 +61,6 @@ def _preview(regions, size, result, full):
     return image
 
 
-
 def finalize_runtime_resources(capture, store, *, preview: bool) -> list[Exception]:
     """Close capture/UI independently and always stop and join the dataset worker."""
     errors = []
@@ -85,6 +84,7 @@ def finalize_runtime_resources(capture, store, *, preview: bool) -> list[Excepti
         except Exception as exc:
             errors.append(exc)
     return errors
+
 
 def run(
     *,
