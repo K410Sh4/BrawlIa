@@ -73,9 +73,7 @@ def reconcile_dataset_integrity(
                         )
                     else:
                         with path.open("rb") as image_stream:
-                            digest = hashlib.file_digest(
-                                image_stream, "sha256"
-                            ).hexdigest()
+                            digest = hashlib.file_digest(image_stream, "sha256").hexdigest()
                         if digest != expected.lower():
                             report["hash_mismatches"].append(normalized)
     if image_root.is_dir():
