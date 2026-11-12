@@ -27,9 +27,7 @@ jobs:
       - name: Lint
         run: python -m ruff check .
       - name: Formatting
-        run: |
-          python -m black --diff brawlla/recognition_v1/dataset_integrity.py
-          python -m black --check .
+        run: python -m black --check .
       - name: Unit and integration tests
         run: python -m unittest discover -s tests -v
       - name: Desktop one-button smoke (Linux)
