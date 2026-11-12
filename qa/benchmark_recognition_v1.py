@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import json
+import math
 from pathlib import Path
 import statistics
 
@@ -36,7 +37,12 @@ def benchmark(folder: Path):
     ]
     if not entries:
         raise ValueError("Nenhum ciclo de reconhecimento armazenado")
-    duration = max(0.0, entries[-1]["timestamp_s"] - entries[0]["timestamp_s"])
+    timestamps = [float(entry["timestamp_s"]) for entry in entries]
+    if any(not math.isfinite(value) for value in timestamps):
+        raise ValueError("Timestamps não finitos no dataset")
+    if any(current <= previous for previous, current in zip(timestamps, timestamps[1:])):
+        raise ValueError("Timestamps devem ser estritamente crescentes")
+    duration = timestamps[-1] - timestamps[0]
     time_ms = [float(entry.get("processing_ms", 0)) for entry in entries]
     acquired = sum(int(e.get("acquired_pixels", 0)) for e in entries)
     possible = sum(int(e.get("full_screen_pixels", 0)) for e in entries)
