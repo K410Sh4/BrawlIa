@@ -34,6 +34,21 @@ class DatasetIntegrityTests(unittest.TestCase):
             store.records = 1
             self.assertEqual(store.snapshot()["pending"], 1)
 
+    def test_selected_cycles_count_only_accepted_samples(self):
+        with tempfile.TemporaryDirectory() as folder:
+            store = DatasetStore(folder, queue_size=1)
+            store._thread = object()
+            with patch.object(
+                store.curator, "select_samples", return_value=(True, "critical_event")
+            ):
+                store.submit({"frame_id": 1}, [])
+                self.assertEqual(store.selected, 1)
+                with self.assertRaisesRegex(RuntimeError, "Fila de dataset cheia"):
+                    store.submit({"frame_id": 2}, [])
+            self.assertEqual(store.snapshot()["selected_cycles"], 1)
+            self.assertEqual(store.snapshot()["accepted"], 1)
+            self.assertEqual(store.snapshot()["dropped"], 1)
+
     def test_stop_is_idempotent(self):
         with tempfile.TemporaryDirectory() as folder:
             store = DatasetStore(folder)
