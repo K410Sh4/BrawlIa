@@ -61,8 +61,6 @@ class DatasetStore:
         if self.error:
             raise RuntimeError(self.error)
         sample, reason = self.curator.select_samples(result)
-        if sample:
-            self.selected += 1
         samples = (
             [
                 (r.name, r.rect.xywh(), r.image.copy(), r.captured_at, reason)
@@ -83,6 +81,8 @@ class DatasetStore:
                 self.error = "Fila de dataset cheia, registros podem estar incompletos"
                 raise RuntimeError(self.error)
             self.accepted += 1
+            if sample:
+                self.selected += 1
 
     def stop(self):
         with self._accept_lock:
