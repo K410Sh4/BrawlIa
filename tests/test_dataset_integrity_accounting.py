@@ -1,6 +1,7 @@
 """Regression tests for dataset queue lifecycle and accounting."""
 
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -48,6 +49,43 @@ class DatasetIntegrityTests(unittest.TestCase):
             self.assertEqual(store.snapshot()["selected_cycles"], 1)
             self.assertEqual(store.snapshot()["accepted"], 1)
             self.assertEqual(store.snapshot()["dropped"], 1)
+
+    def test_stop_during_sample_preparation_rejects_late_enqueue(self):
+        with tempfile.TemporaryDirectory() as folder:
+            store = DatasetStore(folder)
+            store._thread = object()
+            entered = threading.Event()
+            release = threading.Event()
+            errors = []
+
+            def delayed_selection(_result):
+                entered.set()
+                if not release.wait(timeout=5):
+                    raise TimeoutError("sample preparation timed out")
+                return False, "none"
+
+            def submit():
+                try:
+                    store.submit({"frame_id": 1}, [])
+                except Exception as exc:
+                    errors.append(exc)
+
+            with patch.object(
+                store.curator, "select_samples", side_effect=delayed_selection
+            ):
+                worker = threading.Thread(target=submit)
+                worker.start()
+                try:
+                    self.assertTrue(entered.wait(timeout=5))
+                    store.stop()
+                finally:
+                    release.set()
+                    worker.join(timeout=5)
+                self.assertFalse(worker.is_alive())
+            self.assertEqual(len(errors), 1)
+            self.assertIsInstance(errors[0], RuntimeError)
+            self.assertEqual(store.snapshot()["accepted"], 0)
+            self.assertEqual(store.queue.qsize(), 0)
 
     def test_stop_is_idempotent(self):
         with tempfile.TemporaryDirectory() as folder:
