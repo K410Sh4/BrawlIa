@@ -40,6 +40,8 @@ class DatasetStore:
         self.curator = DatasetCurator(interval_s=sample_interval_s)
         self.selected = 0
         self._stop = threading.Event()
+        self._accept_lock = threading.Lock()
+        self.accepted = 0
         self._thread = None
 
     def start(self):
@@ -52,11 +54,13 @@ class DatasetStore:
     def submit(self, result: dict, regions: list[RegionImage]):
         if self._thread is None:
             raise RuntimeError("DatasetStore não iniciado")
+        # Reject closed stores before parsing potentially incomplete observations.
+        # The synchronized check below still protects the enqueue/stop race.
+        if self._stop.is_set():
+            raise RuntimeError("DatasetStore já está encerrando")
         if self.error:
             raise RuntimeError(self.error)
         sample, reason = self.curator.select_samples(result)
-        if sample:
-            self.selected += 1
         samples = (
             [
                 (r.name, r.rect.xywh(), r.image.copy(), r.captured_at, reason)
@@ -65,16 +69,24 @@ class DatasetStore:
             if sample
             else []
         )
-        try:
-            self.queue.put_nowait((dict(result), samples))
-        except queue.Full:
-            self.dropped += 1
-            # Não ocultar perda de histórico.
-            self.error = "Fila de dataset cheia, registros podem estar incompletos"
-            raise RuntimeError(self.error)
+        with self._accept_lock:
+            if self._stop.is_set():
+                raise RuntimeError("DatasetStore já está encerrando")
+            if self.error:
+                raise RuntimeError(self.error)
+            try:
+                self.queue.put_nowait((dict(result), samples))
+            except queue.Full:
+                self.dropped += 1
+                self.error = "Fila de dataset cheia, registros podem estar incompletos"
+                raise RuntimeError(self.error)
+            self.accepted += 1
+            if sample:
+                self.selected += 1
 
     def stop(self):
-        self._stop.set()
+        with self._accept_lock:
+            self._stop.set()
 
     def join(self, timeout=None):
         if self._thread:
@@ -85,6 +97,9 @@ class DatasetStore:
             "folder": str(self.folder),
             "written": self.written,
             "records": self.records,
+            "accepted": self.accepted,
+            "pending": self.accepted - self.records,
+            "queue_depth": self.queue.qsize(),
             "bytes_saved": self.bytes_saved,
             "dropped": self.dropped,
             "selected_cycles": self.selected,
@@ -183,7 +198,11 @@ class DatasetStore:
         except Exception as exc:
             self.error = self.error or str(exc)
         finally:
-            (self.folder / "dataset_summary.json").write_text(
-                json.dumps(self.snapshot(), ensure_ascii=False, indent=2),
-                encoding="utf-8",
-            )
+            try:
+                (self.folder / "dataset_summary.json").write_text(
+                    json.dumps(self.snapshot(), ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+            except OSError as exc:
+                if self.error is None:
+                    self.error = f"Falha ao salvar resumo do dataset: {exc}"
