@@ -10,9 +10,7 @@ import json
 from pathlib import Path
 
 
-def reconcile_dataset_integrity(
-    folder: Path, *, verify_hashes: bool = True
-) -> dict:
+def reconcile_dataset_integrity(folder: Path, *, verify_hashes: bool = True) -> dict:
     """Confere manifest.jsonl e imagens sem confiar em caminhos do manifesto."""
     root = Path(folder).resolve()
     image_root = root / "images"
@@ -73,7 +71,9 @@ def reconcile_dataset_integrity(
                         )
                     else:
                         with path.open("rb") as image_stream:
-                            digest = hashlib.file_digest(image_stream, "sha256").hexdigest()
+                            digest = hashlib.file_digest(
+                                image_stream, "sha256"
+                            ).hexdigest()
                         if digest != expected.lower():
                             report["hash_mismatches"].append(normalized)
     if image_root.is_dir():
